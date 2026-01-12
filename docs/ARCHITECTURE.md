@@ -7,48 +7,76 @@ The Twitter Misinformation Detection System is built using a modular, scalable a
 ## High-Level Architecture
 
 ```
-
-                    Web Interface Layer                      
-       
-     Flask         Templates       Static Assets      
-     Routes         (Jinja2)      (CSS/JS/Images)    
-       
-
-                              
-                              
-
-                   Application Layer                         
-       
-     Main          Insights        Configuration      
-     Flask        Generator         Management        
-      App                                             
-       
-
-                              
-                              
-
-                    Service Layer                            
-       
-      Data          Feature           Model           
-   Processing     Extraction        Training          
-                                                      
-       
-       
-     Network       Language         Sentiment         
-    Analysis      Detection         Analysis          
-                                                      
-       
-
-                              
-                              
-
-                     Data Layer                              
-       
-      File          Model           Configuration     
-    Manager        Storage            Storage         
-                                                      
-       
-
+┌─────────────────────────────────────────────────────────────────┐
+│                   WEB INTERFACE LAYER                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ Flask Routes │  │ Templates    │  │ Static       │         │
+│  │ & Endpoints  │  │ (Jinja2)     │  │ Assets       │         │
+│  │              │  │              │  │ (CSS/JS)     │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│        │                  │                   │                 │
+└────────┼──────────────────┼───────────────────┼─────────────────┘
+         │                  │                   │
+         └──────────────────┼───────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────────────┐
+│               APPLICATION LAYER                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │        Main Flask Application (main.py)                │  │
+│  │  - Request Routing                                     │  │
+│  │  - Session Management                                 │  │
+│  │  - Error Handling                                     │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ Insights     │  │ Configuration│  │ AI System    │         │
+│  │ Generator    │  │ Management   │  │ Coordinator  │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│        │                  │                   │                 │
+└────────┼──────────────────┼───────────────────┼─────────────────┘
+         │                  │                   │
+         └──────────────────┼───────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────────────┐
+│                  SERVICE LAYER                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ Data         │  │ Feature      │  │ Model        │         │
+│  │ Processor    │  │ Extractor    │  │ Trainer      │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ Model        │  │ Network      │  │ Language     │         │
+│  │ Evaluator    │  │ Analyzer     │  │ Detector     │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ Sentiment    │  │ Fact-Check   │  │ Prediction   │         │
+│  │ Analyzer     │  │ Validator    │  │ Service      │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│                                                                 │
+└────────┬──────────────────┬───────────────────┬─────────────────┘
+         │                  │                   │
+         └──────────────────┼───────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATA LAYER                                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ File Manager │  │ Model        │  │ Configuration│         │
+│  │              │  │ Storage      │  │ Storage      │         │
+│  │ - Datasets   │  │              │  │              │         │
+│  │ - Results    │  │ - joblib     │  │ - config.json│         │
+│  │ - Features   │  │ - Metadata   │  │ - .env       │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Component Architecture
