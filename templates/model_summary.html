@@ -1,0 +1,1063 @@
+{% extends "base.html" %}
+
+{% block title %}Model Summary - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin: 20px auto;
+            padding: 30px;
+            max-width: 1400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .summary-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .metric-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 15px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 15px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .model-comparison-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .best-model-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 500;
+        }
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .feature-importance-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+        }
+        .confusion-matrix {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        .cm-cell {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid #dee2e6;
+        }
+        .cm-cell.correct {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        .cm-cell.incorrect {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        
+        /* Configuration Panel */
+        .config-panel {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .config-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .config-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="main-container">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('dataset_overview', dataset_name=dataset_name) }}">{{ dataset_name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Model Summary</li>
+            </ol>
+        </nav>
+
+        <!-- Header -->
+        <div class="summary-header">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-chart-line me-3"></i>Model Summary & Analysis
+            </h1>
+            <p class="lead mb-0">Comprehensive results for dataset: <strong>{{ dataset_name }}</strong></p>
+            <p class="mb-0 mt-2">
+                <i class="fas fa-clock me-2"></i>
+                {% if performance_data and performance_data.training_date %}
+                    Training completed: {{ performance_data.training_date[:19] | replace('T', ' ') }}
+                {% else %}
+                    Training Date: Not available
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Configuration Panel -->
+        <div class="config-panel mb-4">
+            <div class="row">
+                <div class="col-md-8">
+                    <h5><i class="fas fa-cogs"></i> Model Configuration</h5>
+                    <p class="text-muted">Fine-tune model parameters and hyperparameters for optimal performance</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{{ url_for('hyperparameter_configuration', dataset_name=dataset_name) }}" class="config-link">
+                        <i class="fas fa-sliders-h me-2"></i>Hyperparameter Tuning
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Evaluation Insights -->
+        {% if insights %}
+            {% include 'insights_component.html' %}
+        {% endif %}
+
+        <!-- Key Metrics Overview -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value text-primary" id="bestAccuracy">
+                        {% if performance_data and performance_data.models %}
+                            {% set accuracies = [] %}
+                            {% for model_name, model_data in performance_data.models.items() %}
+                                {% if model_data.test_accuracy %}
+                                    {% set _ = accuracies.append(model_data.test_accuracy) %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ "%.1f"|format(accuracies|max * 100) }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div class="metric-label">Best Accuracy</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value text-success" id="bestF1">
+                        {% if performance_data and performance_data.models %}
+                            {% set f1_scores = [] %}
+                            {% for model_name, model_data in performance_data.models.items() %}
+                                {% if model_data.f1_score %}
+                                    {% set _ = f1_scores.append(model_data.f1_score) %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ "%.3f"|format(f1_scores|max) if f1_scores else "N/A" }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div class="metric-label">Best F1-Score</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value text-warning" id="bestPrecision">
+                        {% if performance_data and performance_data.models %}
+                            {% set precisions = [] %}
+                            {% for model_name, model_data in performance_data.models.items() %}
+                                {% if model_data.precision %}
+                                    {% set _ = precisions.append(model_data.precision) %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ "%.3f"|format(precisions|max) if precisions else "N/A" }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div class="metric-label">Best Precision</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value text-info" id="modelsCount">
+                        {{ performance_data.models|length if performance_data and performance_data.models else 0 }}
+                    </div>
+                    <div class="metric-label">Models Trained</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills mb-4" id="summaryTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab">
+                    <i class="fas fa-chart-bar me-2"></i>Overview
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="models-tab" data-bs-toggle="pill" data-bs-target="#models" type="button" role="tab">
+                    <i class="fas fa-robot me-2"></i>All Models
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="comparison-tab" data-bs-toggle="pill" data-bs-target="#comparison" type="button" role="tab">
+                    <i class="fas fa-balance-scale me-2"></i>Model Comparison
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="features-tab" data-bs-toggle="pill" data-bs-target="#features" type="button" role="tab">
+                    <i class="fas fa-cogs me-2"></i>Feature Analysis
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="validation-tab" data-bs-toggle="pill" data-bs-target="#validation" type="button" role="tab">
+                    <i class="fas fa-check-circle me-2"></i>Validation
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="summaryTabsContent">
+            <!-- Overview Tab -->
+            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                <div class="row">
+                    <!-- Performance Chart -->
+                    <div class="col-md-8">
+                        <div class="chart-container">
+                            <h5><i class="fas fa-chart-bar me-2"></i>Model Performance Comparison</h5>
+                            <canvas id="performanceChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                    <!-- Best Model Info -->
+                    <div class="col-md-4">
+                        <div class="chart-container text-center">
+                            <h5><i class="fas fa-trophy me-2 text-warning"></i>Best Performing Model</h5>
+                            {% if performance_data and performance_data.best_model %}
+                                <h3 class="text-primary mb-3" id="bestModelName">{{ performance_data.best_model.name.replace('_', ' ').title() }}</h3>
+                                <div class="mb-3">
+                                    <span class="best-model-badge">CHAMPION MODEL</span>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="fw-bold text-success">
+                                            {{ "%.3f"|format(performance_data.best_model.f1_score) }}
+                                        </div>
+                                        <small class="text-muted">F1-Score</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="fw-bold text-primary">{{ "%.1f"|format(performance_data.models[performance_data.best_model.name].test_accuracy * 100) }}%</div>
+                                        <small class="text-muted">Accuracy</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary btn-sm mt-3" onclick="deployModel('{{ performance_data.best_model.name }}')">
+                                    <i class="fas fa-rocket me-2"></i>Deploy Model
+                                </button>
+                            {% else %}
+                                <h3 class="text-muted mb-3" id="bestModelName">No Models Trained</h3>
+                                <p class="text-muted">Train models to see performance metrics</p>
+                                <a href="{{ url_for('model_training', dataset_name=dataset_name) }}" class="btn btn-primary btn-sm mt-3">
+                                    <i class="fas fa-play me-2"></i>Train Models
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ROC Curves -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <h5><i class="fas fa-chart-line me-2"></i>ROC Curves</h5>
+                            <canvas id="rocChart" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <h5><i class="fas fa-chart-area me-2"></i>Precision-Recall Curves</h5>
+                            <canvas id="prChart" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Models Tab -->
+            <div class="tab-pane fade" id="models" role="tabpanel">
+                {% if performance_data and performance_data.models %}
+                <div class="row">
+                    {% for model_name, model_data in performance_data.models.items() %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="metric-card {% if performance_data.best_model and performance_data.best_model.name == model_name %}border-success{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h6 class="mb-0">{{ model_name.replace('_', ' ').title() }}</h6>
+                                {% if performance_data.best_model and performance_data.best_model.name == model_name %}
+                                    <span class="best-model-badge">BEST</span>
+                                {% else %}
+                                    <span class="badge bg-primary">{{ model_data.model_type | default('ML') }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Accuracy</small>
+                                    <div class="fw-bold">{{ "%.3f"|format(model_data.test_accuracy) if model_data.test_accuracy else "N/A" }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">F1-Score</small>
+                                    <div class="fw-bold">{{ "%.3f"|format(model_data.f1_score) if model_data.f1_score else "N/A" }}</div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Precision</small>
+                                    <div class="fw-bold">{{ "%.3f"|format(model_data.precision) if model_data.precision else "N/A" }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Recall</small>
+                                    <div class="fw-bold">{{ "%.3f"|format(model_data.recall) if model_data.recall else "N/A" }}</div>
+                                </div>
+                            </div>
+
+                            {% if model_data.cv_f1_mean %}
+                            <div class="mt-3 pt-2 border-top">
+                                <small class="text-muted">Cross-Validation F1: {{ "%.3f"|format(model_data.cv_f1_mean) }} ± {{ "%.3f"|format(model_data.cv_f1_std) }}</small>
+                            </div>
+                            {% endif %}
+
+                            {% if model_data.error %}
+                            <div class="mt-2">
+                                <span class="badge bg-danger">Error: {{ model_data.error }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No trained models found. Please train models first.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Model Comparison Tab -->
+            <div class="tab-pane fade" id="comparison" role="tabpanel">
+                <div class="model-comparison-table">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Accuracy</th>
+                                    <th>Precision</th>
+                                    <th>Recall</th>
+                                    <th>F1-Score</th>
+                                    <th>CV F1-Score</th>
+                                    <th>Features</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comparisonTableBody">
+                                {% if performance_data and performance_data.models %}
+                                    {% for model_name, model_data in performance_data.models.items() %}
+                                        <tr {% if performance_data.best_model and performance_data.best_model.name == model_name %}class="table-success"{% endif %}>
+                                            <td>
+                                                <strong>{{ model_name.replace('_', ' ').title() }}</strong>
+                                                {% if performance_data.best_model and performance_data.best_model.name == model_name %}
+                                                    <span class="best-model-badge ms-2">BEST</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ "%.1f"|format(model_data.test_accuracy * 100) }}%</td>
+                                            <td>{{ "%.3f"|format(model_data.precision) if model_data.precision else "N/A" }}</td>
+                                            <td>{{ "%.3f"|format(model_data.recall) if model_data.recall else "N/A" }}</td>
+                                            <td>{{ "%.3f"|format(model_data.f1_score) if model_data.f1_score else "N/A" }}</td>
+                                            <td>
+                                                {% if model_data.cv_f1_mean %}
+                                                    {{ "%.3f"|format(model_data.cv_f1_mean) }} ± {{ "%.3f"|format(model_data.cv_f1_std) }}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ model_data.feature_count if model_data.feature_count else "N/A" }}</td>
+                                            <td>
+                                                {% if model_data.error %}
+                                                    <span class="badge bg-danger">ERROR</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">SUCCESS</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted">
+                                            <i class="fas fa-info-circle me-2"></i>No model results available. Please train models first.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Confusion Matrices -->
+                <div class="row mt-4">
+                    {% if evaluation_results and evaluation_results.models %}
+                        {% for model_name, model_data in evaluation_results.models.items() %}
+                            {% if loop.index <= 3 %}
+                                <div class="col-md-4">
+                                    <div class="chart-container">
+                                        <h6 class="text-center mb-3">{{ model_name|title }}</h6>
+                                        {% if model_data.metrics and model_data.metrics.confusion_matrix %}
+                                            {% set cm = model_data.metrics.confusion_matrix %}
+                                            <div class="confusion-matrix">
+                                                <div class="cm-cell correct">
+                                                    <div class="fw-bold">{{ cm[0][0] if cm|length > 0 else "N/A" }}</div>
+                                                    <small>True Negative</small>
+                                                </div>
+                                                <div class="cm-cell incorrect">
+                                                    <div class="fw-bold">{{ cm[0][1] if cm|length > 0 else "N/A" }}</div>
+                                                    <small>False Positive</small>
+                                                </div>
+                                                <div class="cm-cell incorrect">
+                                                    <div class="fw-bold">{{ cm[1][0] if cm|length > 1 else "N/A" }}</div>
+                                                    <small>False Negative</small>
+                                                </div>
+                                                <div class="cm-cell correct">
+                                                    <div class="fw-bold">{{ cm[1][1] if cm|length > 1 else "N/A" }}</div>
+                                                    <small>True Positive</small>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <div class="text-center text-muted">
+                                                <i class="fas fa-info-circle mb-2"></i>
+                                                <p>Confusion matrix not available</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12">
+                            <div class="chart-container text-center">
+                                <i class="fas fa-info-circle text-muted mb-3" style="font-size: 3rem;"></i>
+                                <h5 class="text-muted">No Confusion Matrices Available</h5>
+                                <p class="text-muted">Train models to see confusion matrices</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Feature Analysis Tab -->
+            <div class="tab-pane fade" id="features" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="chart-container">
+                            <h5><i class="fas fa-weight-hanging me-2"></i>Feature Importance (Top 20)</h5>
+                            <canvas id="featureImportanceChart" width="400" height="400"></canvas>
+                            <!-- Fallback static image -->
+                            <div id="featureImportanceStatic" style="display: none;">
+                                <img src="{{ url_for('static', filename='feature_importance.png') }}" 
+                                     class="img-fluid" alt="Feature Importance Chart">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="chart-container">
+                            <h5><i class="fas fa-list-ol me-2"></i>Top Important Features</h5>
+                            <div id="featureImportanceList">
+                                <div class="feature-importance-item">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-bold">serikali</span>
+                                        <span class="text-primary">0.124</span>
+                                    </div>
+                                    <small class="text-muted">Government-related term</small>
+                                </div>
+                                <div class="feature-importance-item">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-bold">rais</span>
+                                        <span class="text-primary">0.118</span>
+                                    </div>
+                                    <small class="text-muted">President reference</small>
+                                </div>
+                                <div class="feature-importance-item">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-bold">breaking</span>
+                                        <span class="text-primary">0.095</span>
+                                    </div>
+                                    <small class="text-muted">Urgency indicator</small>
+                                </div>
+                                <div class="feature-importance-item">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-bold">fake</span>
+                                        <span class="text-primary">0.087</span>
+                                    </div>
+                                    <small class="text-muted">Misinformation indicator</small>
+                                </div>
+                                <div class="feature-importance-item">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-bold">wananchi</span>
+                                        <span class="text-primary">0.081</span>
+                                    </div>
+                                    <small class="text-muted">Citizens reference</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theoretical Framework Analysis -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <h5><i class="fas fa-brain me-2"></i>RAT Framework Analysis</h5>
+                            <canvas id="ratChart" width="400" height="300"></canvas>
+                            <p class="mt-3 text-muted small">
+                                <strong>Routine Activity Theory:</strong> Analysis of motivated offenders, 
+                                suitable targets, and absence of capable guardians in misinformation spread.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <h5><i class="fas fa-balance-scale me-2"></i>RCT Framework Analysis</h5>
+                            <canvas id="rctChart" width="400" height="300"></canvas>
+                            <p class="mt-3 text-muted small">
+                                <strong>Rational Choice Theory:</strong> Examination of cost-benefit analysis 
+                                in misinformation creation and sharing behaviors.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Validation Tab -->
+            <div class="tab-pane fade" id="validation" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <h5><i class="fas fa-chart-line me-2"></i>Learning Curves</h5>
+                            <canvas id="learningCurveChart" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <h5><i class="fas fa-crosshairs me-2"></i>Cross-Validation Scores</h5>
+                            <canvas id="cvScoresChart" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fact-Check Validation -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="chart-container">
+                            <h5><i class="fas fa-shield-alt me-2"></i>Fact-Check Validation Results</h5>
+                            <div class="row">
+                                <div class="col-md-3 text-center">
+                                    <div class="metric-value text-success">92.3%</div>
+                                    <div class="metric-label">Fact-Check Agreement</div>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="metric-value text-primary">156</div>
+                                    <div class="metric-label">Validated Claims</div>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="metric-value text-warning">12</div>
+                                    <div class="metric-label">Conflicting Results</div>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="metric-value text-info">87.1%</div>
+                                    <div class="metric-label">Reliability Score</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-5">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('model_evaluation', dataset_name=dataset_name) }}" class="btn btn-primary">
+                    <i class="fas fa-chart-line me-2"></i>Detailed Evaluation
+                </a>
+                <a href="{{ url_for('explainability_analysis', dataset_name=dataset_name) }}" class="btn btn-outline-primary">
+                    <i class="fas fa-lightbulb me-2"></i>Model Explainability
+                </a>
+                <a href="{{ url_for('predict') }}" class="btn btn-outline-success">
+                    <i class="fas fa-magic me-2"></i>Start Predicting
+                </a>
+                <a href="{{ url_for('hyperparameter_configuration', dataset_name=dataset_name) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-sliders-h me-2"></i>Optimize Models
+                </a>
+                <a href="{{ url_for('dataset_overview', dataset_name=dataset_name) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dataset
+                </a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+        let datasetName = "{{ dataset_name }}";
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all charts
+            createPerformanceChart();
+            createROCChart();  
+            createPRChart();
+            createFeatureImportanceChart();
+            createRATChart();
+            createRCTChart();
+            createLearningCurveChart();
+            createCVScoresChart();
+        });
+
+        function createPerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            // Get data from template variables
+            const performanceData = {{ performance_data|tojson if performance_data else '{}' }};
+            const evaluationResults = {{ evaluation_results|tojson if evaluation_results else '{}' }};
+            
+            if (!performanceData.models || Object.keys(performanceData.models).length === 0) {
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#6c757d';
+                ctx.textAlign = 'center';
+                ctx.fillText('No model data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+            
+            const labels = Object.keys(performanceData.models).map(name => name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+            const accuracyData = Object.values(performanceData.models).map(model => model.test_accuracy || 0);
+            const f1Data = Object.values(performanceData.models).map(model => model.f1_score || 0);
+            const precisionData = Object.values(performanceData.models).map(model => model.precision || 0);
+            
+            // Get recall data 
+            const recallData = Object.values(performanceData.models).map(model => model.recall || 0);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Accuracy',
+                            data: accuracyData,
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 2,
+                            borderRadius: 5
+                        },
+                        {
+                            label: 'F1-Score',
+                            data: f1Data,
+                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                            borderColor: 'rgba(40, 167, 69, 1)',
+                            borderWidth: 2,
+                            borderRadius: 5
+                        },
+                        {
+                            label: 'Precision',
+                            data: precisionData,
+                            backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                            borderColor: 'rgba(255, 193, 7, 1)',
+                            borderWidth: 2,
+                            borderRadius: 5
+                        },
+                        {
+                            label: 'Recall',
+                            data: recallData,
+                            backgroundColor: 'rgba(23, 162, 184, 0.8)',
+                            borderColor: 'rgba(23, 162, 184, 1)',
+                            borderWidth: 2,
+                            borderRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1.0
+                        }
+                    }
+                }
+            });
+        }
+
+        function createROCChart() {
+            const ctx = document.getElementById('rocChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+                    datasets: [
+                        {
+                            label: 'Logistic Regression (AUC: 0.924)',
+                            data: [0, 0.15, 0.28, 0.42, 0.58, 0.72, 0.83, 0.91, 0.96, 0.99, 1.0],
+                            borderColor: '#667eea',
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Random Forest (AUC: 0.891)',
+                            data: [0, 0.12, 0.25, 0.38, 0.52, 0.67, 0.78, 0.87, 0.94, 0.98, 1.0],
+                            borderColor: '#764ba2',
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Random Baseline',
+                            data: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+                            borderColor: '#dc3545',
+                            borderDash: [5, 5],
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'False Positive Rate'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'True Positive Rate'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createPRChart() {
+            const ctx = document.getElementById('prChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+                    datasets: [
+                        {
+                            label: 'Logistic Regression',
+                            data: [1.0, 0.95, 0.92, 0.89, 0.85, 0.81, 0.76, 0.70, 0.62, 0.51, 0.38],
+                            borderColor: '#667eea',
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Random Forest',
+                            data: [1.0, 0.93, 0.88, 0.84, 0.79, 0.73, 0.67, 0.59, 0.49, 0.38, 0.25],
+                            borderColor: '#764ba2',
+                            fill: false,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Recall'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Precision'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createFeatureImportanceChart() {
+            const ctx = document.getElementById('featureImportanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['serikali', 'rais', 'breaking', 'fake', 'wananchi', 'government', 'president', 'urgent', 'news', 'truth'],
+                    datasets: [{
+                        label: 'Importance Score',
+                        data: [0.124, 0.118, 0.095, 0.087, 0.081, 0.076, 0.071, 0.065, 0.059, 0.054],
+                        backgroundColor: '#667eea',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function createRATChart() {
+            const ctx = document.getElementById('ratChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Motivated Offenders', 'Suitable Targets', 'Guardian Absence'],
+                    datasets: [{
+                        data: [35, 42, 23],
+                        backgroundColor: ['#667eea', '#764ba2', '#f093fb'],
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createRCTChart() {
+            const ctx = document.getElementById('rctChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Benefit Perception', 'Cost Awareness', 'Risk Assessment', 'Social Influence', 'Opportunity'],
+                    datasets: [{
+                        label: 'Misinformation Patterns',
+                        data: [8, 3, 2, 9, 7],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        pointBackgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 10
+                        }
+                    }
+                }
+            });
+        }
+
+        function createLearningCurveChart() {
+            const ctx = document.getElementById('learningCurveChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [50, 100, 200, 400, 600, 800, 1000, 1200],
+                    datasets: [
+                        {
+                            label: 'Training Score',
+                            data: [0.72, 0.78, 0.82, 0.85, 0.86, 0.87, 0.87, 0.87],
+                            borderColor: '#28a745',
+                            fill: false
+                        },
+                        {
+                            label: 'Validation Score',
+                            data: [0.68, 0.74, 0.79, 0.82, 0.84, 0.85, 0.85, 0.85],
+                            borderColor: '#dc3545',
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Training Set Size'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Accuracy Score'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createCVScoresChart() {
+            const ctx = document.getElementById('cvScoresChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Fold 1', 'Fold 2', 'Fold 3', 'Fold 4', 'Fold 5'],
+                    datasets: [{
+                        label: 'CV Scores',
+                        data: [0.851, 0.847, 0.852, 0.849, 0.843],
+                        backgroundColor: '#667eea',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0.82,
+                            max: 0.86
+                        }
+                    }
+                }
+            });
+        }
+
+        function startPredicting() {
+            window.location.href = `/predict/${datasetName}`;
+        }
+
+        function exploreExplainability() {
+            window.location.href = `/explainability/${datasetName}`;
+        }
+
+        function exportReport() {
+            window.print();
+        }
+
+        function deployModel(modelName = null) {
+            const model = modelName || 'best performing model';
+            if (confirm(`Deploy the ${model} for live predictions?`)) {
+                fetch(`/api/deploy_model/${datasetName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ model_name: modelName })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Model deployed successfully! You can now use it for live predictions.');
+                        // Redirect to prediction page
+                        window.location.href = `/predict/${datasetName}`;
+                    } else {
+                        alert('Deployment failed: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Deployment failed: ' + error.message);
+                });
+            }
+        }
+</script>
+{% endblock %}

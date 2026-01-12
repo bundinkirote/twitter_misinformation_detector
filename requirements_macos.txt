@@ -1,0 +1,58 @@
+# MacOS-optimized requirements for ML2 Political Analysis Project
+
+# Core Flask and Web Framework
+Flask==2.3.3
+Werkzeug==2.3.7
+waitress==2.1.2
+
+# Data Processing and Analysis
+pandas==2.1.1
+numpy==1.24.3
+scikit-learn==1.3.0
+
+# Machine Learning and NLP
+nltk==3.8.1
+transformers==4.33.2
+# PyTorch with Metal Performance Shaders support for M1/M2 Macs
+torch==2.0.1
+sentence-transformers==2.2.2
+langdetect==1.0.9
+
+# Visualization
+matplotlib==3.7.2
+seaborn==0.12.2
+plotly==5.16.1
+
+# Network Analysis
+networkx==3.1
+python-louvain==0.16  # Replacing community package which can be problematic
+
+# Model Persistence and Utilities
+joblib==1.3.2
+# Removing pickle-mixin as it's not always needed
+
+# Web Scraping (for fact-checking)
+requests==2.31.0
+beautifulsoup4==4.12.2
+lxml==4.9.3  # Better XML parsing on macOS
+
+# Explainability
+shap==0.42.1
+
+# File Handling
+openpyxl==3.1.2
+xlrd==2.0.1
+
+# Logging and Configuration
+python-dotenv==1.0.0
+
+# Development and Testing
+pytest==7.4.2
+pytest-flask==1.2.0
+
+# Performance (with macOS optimizations)
+numba==0.57.1
+
+# Additional macOS-specific packages
+psutil==5.9.5  # Better system resource monitoring
+safetensors==0.3.3  # Better model loading

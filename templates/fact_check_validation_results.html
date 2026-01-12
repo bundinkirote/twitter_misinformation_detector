@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}Fact-Check Validation Results - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        margin: 40px auto;
+        padding: 40px;
+        max-width: 1200px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding: 0 20px;
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #6c757d;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+    }
+    .step.completed .step-number {
+        background: #28a745;
+    }
+    .step.active .step-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .validation-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin: 15px 0;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    .validation-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        border: 2px solid #e9ecef;
+    }
+    .claim-item {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        border-left: 4px solid #667eea;
+    }
+    .claim-verified {
+        border-left-color: #28a745;
+    }
+    .claim-debunked {
+        border-left-color: #dc3545;
+    }
+    .claim-unverified {
+        border-left-color: #ffc107;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: 500;
+    }
+    .source-badge {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin: 2px;
+    }
+    .confidence-bar {
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 5px 0;
+    }
+    .confidence-fill {
+        height: 100%;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        transition: width 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Progress Steps -->
+    <div class="progress-steps">
+        <div class="step completed">
+            <div class="step-number">1</div>
+            <small>Upload Dataset</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">2</div>
+            <small>Data Overview</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">3</div>
+            <small>Language Detection</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">4</div>
+            <small>Sentiment Analysis</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">5</div>
+            <small>Fact-Check Validation</small>
+        </div>
+        <div class="step active">
+            <div class="step-number">6</div>
+            <small>Feature Engineering</small>
+        </div>
+        <div class="step">
+            <div class="step-number">7</div>
+            <small>Model Training</small>
+        </div>
+        <div class="step">
+            <div class="step-number">8</div>
+            <small>Results</small>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <h1 class="display-4 text-primary">
+            <i class="fas fa-shield-alt me-3"></i>Fact-Check Validation Results
+        </h1>
+        <p class="lead text-muted">Claim verification results for {{ dataset_name }}</p>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-primary">{{ results.total_claims_checked or 0 }}</h3>
+                <p class="mb-0">Claims Checked</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-success">{{ results.verified_claims_count or 0 }}</h3>
+                <p class="mb-0">Verified Claims</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-danger">{{ results.debunked_claims_count or 0 }}</h3>
+                <p class="mb-0">Debunked Claims</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-warning">{{ results.unverified_claims_count or 0 }}</h3>
+                <p class="mb-0">Unverified Claims</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Validation Distribution Chart -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="validation-card">
+                <h5><i class="fas fa-chart-pie me-2"></i>Validation Distribution</h5>
+                <canvas id="validationChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="validation-card">
+                <h5><i class="fas fa-database me-2"></i>Sources Used</h5>
+                <div class="mt-3">
+                    <p><strong>Local Corpus Matches:</strong> {{ results.local_matches_count or 0 }}</p>
+                    <p><strong>External API Matches:</strong> {{ results.external_matches_count or 0 }}</p>
+                    <p><strong>Average Confidence:</strong> {{ "%.2f"|format(results.average_confidence or 0) }}</p>
+                </div>
+                
+                <div class="mt-3 pt-3 border-top">
+                    <h6>Active Sources</h6>
+                    <div class="mt-2">
+                        {% if results.sources_used %}
+                            {% for source in results.sources_used %}
+                            <span class="source-badge">{{ source }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="source-badge">Local Corpus</span>
+                            <span class="source-badge">Google Fact Check</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verified Claims -->
+    {% if results.verified_claims and results.verified_claims|length > 0 %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="validation-card">
+                <h5><i class="fas fa-check-circle text-success me-2"></i>Verified Claims</h5>
+                <p class="text-muted">Claims that match verified fact-checked sources</p>
+                
+                {% for claim in results.verified_claims[:5] %}
+                <div class="claim-item claim-verified">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <p class="mb-2"><strong>Claim:</strong> "{{ claim.text[:100] }}..."</p>
+                            <small class="text-muted">
+                                <strong>Source:</strong> {{ claim.source or 'Local Corpus' }} | 
+                                <strong>Verdict:</strong> {{ claim.verdict or 'Verified' }}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <div class="confidence-bar" style="width: 100px;">
+                                <div class="confidence-fill" style="width: {{ (claim.confidence or 0.8) * 100 }}%;"></div>
+                            </div>
+                            <small class="text-muted">{{ "%.0f"|format((claim.confidence or 0.8) * 100) }}%</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if results.verified_claims|length > 5 %}
+                <p class="text-center mt-3">
+                    <small class="text-muted">Showing 5 of {{ results.verified_claims|length }} verified claims</small>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Debunked Claims -->
+    {% if results.debunked_claims and results.debunked_claims|length > 0 %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="validation-card">
+                <h5><i class="fas fa-times-circle text-danger me-2"></i>Debunked Claims</h5>
+                <p class="text-muted">Claims identified as false by fact-checkers</p>
+                
+                {% for claim in results.debunked_claims[:5] %}
+                <div class="claim-item claim-debunked">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <p class="mb-2"><strong>Claim:</strong> "{{ claim.text[:100] }}..."</p>
+                            <small class="text-muted">
+                                <strong>Source:</strong> {{ claim.source or 'Local Corpus' }} | 
+                                <strong>Verdict:</strong> {{ claim.verdict or 'False' }}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <div class="confidence-bar" style="width: 100px;">
+                                <div class="confidence-fill" style="width: {{ (claim.confidence or 0.8) * 100 }}%; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);"></div>
+                            </div>
+                            <small class="text-muted">{{ "%.0f"|format((claim.confidence or 0.8) * 100) }}%</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if results.debunked_claims|length > 5 %}
+                <p class="text-center mt-3">
+                    <small class="text-muted">Showing 5 of {{ results.debunked_claims|length }} debunked claims</small>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- High-Risk Unverified Claims -->
+    {% if results.high_risk_unverified and results.high_risk_unverified|length > 0 %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="validation-card">
+                <h5><i class="fas fa-exclamation-triangle text-warning me-2"></i>High-Risk Unverified Claims</h5>
+                <p class="text-muted">Unverified claims with characteristics similar to known misinformation</p>
+                
+                {% for claim in results.high_risk_unverified[:3] %}
+                <div class="claim-item claim-unverified">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <p class="mb-2"><strong>Claim:</strong> "{{ claim.text[:100] }}..."</p>
+                            <small class="text-muted">
+                                <strong>Risk Factors:</strong> {{ claim.risk_factors | join(', ') if claim.risk_factors else 'High emotional content, unverified source' }}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-warning">Risk Score: {{ "%.2f"|format(claim.risk_score or 0.7) }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Validation Insights -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="validation-card">
+                <h5><i class="fas fa-lightbulb text-warning me-2"></i>Validation Insights</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Key Findings</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>
+                                {{ "%.1f"|format((results.verified_claims_count or 0) / (results.total_claims_checked or 1) * 100) }}% of claims have fact-check matches
+                            </li>
+                            <li><i class="fas fa-exclamation text-warning me-2"></i>
+                                {{ "%.1f"|format((results.debunked_claims_count or 0) / (results.total_claims_checked or 1) * 100) }}% of claims are identified as false
+                            </li>
+                            <li><i class="fas fa-info text-info me-2"></i>
+                                Average validation confidence: {{ "%.1f"|format((results.average_confidence or 0) * 100) }}%
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Recommendations</h6>
+                        <ul class="list-unstyled">
+                            {% if (results.debunked_claims_count or 0) > 0 %}
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>
+                                Focus model training on debunked claim patterns
+                            </li>
+                            {% endif %}
+                            {% if (results.unverified_claims_count or 0) > (results.total_claims_checked or 1) * 0.5 %}
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>
+                                High unverified content suggests need for additional sources
+                            </li>
+                            {% endif %}
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>
+                                Use validation results as additional features for ML models
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="validation-card text-center">
+                <h5>Ready for Feature Engineering</h5>
+                <p class="text-muted">Fact-check validation results will be integrated into your feature set</p>
+                <button type="button" class="btn btn-primary btn-lg" onclick="proceedToFeatures()">
+                    <i class="fas fa-cogs me-2"></i>Extract Comprehensive Features
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    createValidationChart();
+});
+
+function createValidationChart() {
+    const ctx = document.getElementById('validationChart').getContext('2d');
+    
+    const validationData = {
+        verified: {{ results.verified_claims_count or 0 }},
+        debunked: {{ results.debunked_claims_count or 0 }},
+        unverified: {{ results.unverified_claims_count or 0 }}
+    };
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Verified', 'Debunked', 'Unverified'],
+            datasets: [{
+                data: [validationData.verified, validationData.debunked, validationData.unverified],
+                backgroundColor: [
+                    '#28a745',
+                    '#dc3545',
+                    '#ffc107'
+                ],
+                borderWidth: 3,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+}
+
+function proceedToFeatures() {
+    window.location.href = `/feature_extraction/{{ dataset_name }}`;
+}
+</script>
+{% endblock %}

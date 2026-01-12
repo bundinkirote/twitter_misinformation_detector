@@ -1,0 +1,24 @@
+{
+  "app_name": "Twitter Misinformation Detection System",
+  "version": "1.0.0",
+  "package_type": "lightweight",
+  "local_models_included": false,
+  "debug": false,
+  "max_file_size": "16MB",
+  "supported_formats": [
+    ".csv",
+    ".xlsx"
+  ],
+  "default_models": [
+    "logistic_regression",
+    "naive_bayes",
+    "random_forest"
+  ],
+  "feature_types": [
+    "text",
+    "behavioral",
+    "network"
+  ],
+  "insights_enabled": true,
+  "offline_capable": false
+}

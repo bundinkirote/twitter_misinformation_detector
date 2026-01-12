@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}Sentiment Analysis - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        margin: 40px auto;
+        padding: 40px;
+        max-width: 1200px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding: 0 20px;
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #6c757d;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+    }
+    .step.completed .step-number {
+        background: #28a745;
+    }
+    .step.active .step-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .config-container {
+        text-align: center;
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        margin: 30px 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .sentiment-feature {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 15px;
+        padding: 20px;
+        margin: 15px 0;
+        transition: all 0.3s ease;
+    }
+    .sentiment-feature:hover {
+        border-color: #667eea;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+    }
+    .dataset-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+        border-left: 4px solid #667eea;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Progress Steps -->
+    <div class="progress-steps">
+        <div class="step completed">
+            <div class="step-number">1</div>
+            <small>Upload Dataset</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">2</div>
+            <small>Data Overview</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">3</div>
+            <small>Language Detection</small>
+        </div>
+        <div class="step active">
+            <div class="step-number">4</div>
+            <small>Sentiment Analysis</small>
+        </div>
+        <div class="step">
+            <div class="step-number">5</div>
+            <small>Feature Engineering</small>
+        </div>
+        <div class="step">
+            <div class="step-number">6</div>
+            <small>Model Training</small>
+        </div>
+        <div class="step">
+            <div class="step-number">7</div>
+            <small>Results</small>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <h1 class="display-4 text-primary">
+            <i class="fas fa-heart me-3"></i>Sentiment Analysis
+        </h1>
+        <p class="lead text-muted">Analyze emotional tone and sentiment patterns in your dataset</p>
+        
+        <div class="dataset-info">
+            <h5><i class="fas fa-database me-2"></i>Dataset: {{ dataset_name }}</h5>
+            <p class="mb-0">Language-adaptive sentiment analysis with Kenyan context enhancement</p>
+        </div>
+    </div>
+
+    <!-- Sentiment Analysis Configuration -->
+    <div class="config-container">
+        <h3 class="mb-4">Sentiment Analysis Features</h3>
+        
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="sentiment-feature">
+                    <i class="fas fa-brain text-primary mb-3" style="font-size: 2rem;"></i>
+                    <h5>Transformer Models</h5>
+                    <p class="text-muted">Language-adaptive routing between English and multilingual sentiment models</p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-1"></i>RoBERTa for English</li>
+                        <li><i class="fas fa-check text-success me-1"></i>XLM-RoBERTa for Multilingual</li>
+                        <li><i class="fas fa-check text-success me-1"></i>VADER fallback</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="sentiment-feature">
+                    <i class="fas fa-flag text-warning mb-3" style="font-size: 2rem;"></i>
+                    <h5>Kenyan Context</h5>
+                    <p class="text-muted">Enhanced sentiment analysis with Kenyan political and cultural indicators</p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-1"></i>Political sentiment markers</li>
+                        <li><i class="fas fa-check text-success me-1"></i>Kiswahili sentiment words</li>
+                        <li><i class="fas fa-check text-success me-1"></i>Cultural context weighting</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="sentiment-feature">
+                    <i class="fas fa-chart-line text-info mb-3" style="font-size: 2rem;"></i>
+                    <h5>Theoretical Insights</h5>
+                    <p class="text-muted">Generate insights aligned with misinformation theories</p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-1"></i>Emotional manipulation risk</li>
+                        <li><i class="fas fa-check text-success me-1"></i>High-emotion content detection</li>
+                        <li><i class="fas fa-check text-success me-1"></i>RAT/RCT compatibility</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Preview -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-eye me-2"></i>What You'll Get</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 text-center">
+                                <i class="fas fa-smile text-success mb-2" style="font-size: 1.5rem;"></i>
+                                <h6>Sentiment Distribution</h6>
+                                <small class="text-muted">Positive, Negative, Neutral breakdown</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <i class="fas fa-fire text-danger mb-2" style="font-size: 1.5rem;"></i>
+                                <h6>High-Emotion Content</h6>
+                                <small class="text-muted">Content susceptible to manipulation</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <i class="fas fa-flag text-warning mb-2" style="font-size: 1.5rem;"></i>
+                                <h6>Kenyan Context Markers</h6>
+                                <small class="text-muted">Political and cultural sentiment indicators</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <i class="fas fa-cogs text-info mb-2" style="font-size: 1.5rem;"></i>
+                                <h6>ML Features</h6>
+                                <small class="text-muted">Sentiment features for model training</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="text-center mt-4">
+            <button type="button" class="btn btn-primary btn-lg" onclick="startSentimentAnalysis()">
+                <i class="fas fa-play me-2"></i>Start Sentiment Analysis
+            </button>
+        </div>
+    </div>
+
+    <!-- Processing Status -->
+    <div class="config-container" id="processingStatus" style="display: none;">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Processing...</span>
+            </div>
+            <h5>Analyzing Sentiment...</h5>
+            <div id="processingLog" class="mt-3 text-start">
+                <div class="bg-light p-3 rounded">
+                    <div id="logMessages">
+                        Initializing sentiment analysis...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function startSentimentAnalysis() {
+    // Show processing status
+    document.querySelector('.config-container').style.display = 'none';
+    document.getElementById('processingStatus').style.display = 'block';
+    
+    addLogMessage('Loading processed dataset...');
+    addLogMessage('Initializing language-adaptive sentiment models...');
+    addLogMessage('Loading Kenyan context indicators...');
+    
+    fetch('/process_sentiment_analysis', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            dataset_name: '{{ dataset_name }}'
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            addLogMessage('Sentiment analysis completed successfully!');
+            addLogMessage(`Sentiment distribution calculated for ${data.results.total_samples_analyzed || 0} samples`);
+            addLogMessage(`High-emotion content detected: ${data.results.high_emotion_percentage || 0}%`);
+            addLogMessage('Redirecting to results...');
+            
+            setTimeout(() => {
+                window.location.href = data.redirect || `/sentiment_analysis_results/{{ dataset_name }}`;
+            }, 2000);
+        } else {
+            addLogMessage(`Error: ${data.message || 'Unknown error occurred'}`);
+        }
+    })
+    .catch(error => {
+        console.error('Sentiment analysis error:', error);
+        addLogMessage(`Sentiment Analysis Failed: ${error.message}`);
+        addLogMessage('Please check the console for more details.');
+    });
+}
+
+function addLogMessage(message) {
+    const logMessages = document.getElementById('logMessages');
+    const timestamp = new Date().toLocaleTimeString();
+    logMessages.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+    logMessages.scrollTop = logMessages.scrollHeight;
+}
+</script>
+{% endblock %}

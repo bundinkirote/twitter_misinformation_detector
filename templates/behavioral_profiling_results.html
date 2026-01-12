@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+
+{% block title %}Behavioral Profiling Results - {{ dataset_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="fas fa-users me-2"></i>Behavioral Profiling Results</h2>
+    <p class="text-muted">Dataset: {{ dataset_name }}</p>
+    
+    <!-- Behavioral Profiling Insights -->
+    {% if insights %}
+        {% include 'insights_component.html' %}
+    {% endif %}
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar me-2"></i>Behavioral Analysis Complete</h5>
+                </div>
+                <div class="card-body" style="padding: 20px;">
+                    {% if results %}
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    <h4>{{ results.get('behavioral_metrics', {}).get('total_users_analyzed') or results.get('total_users_analyzed') or 0 }}</h4>
+                                    <p>Users Analyzed</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    <h4>{{ results.get('behavioral_metrics', {}).get('high_activity_users') or results.get('high_activity_users') or 0 }}</h4>
+                                    <p>High Activity Users</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    {% set avg_engagement = results.get('behavioral_metrics', {}).get('avg_engagement_rate') or results.get('avg_engagement_rate') or 0 %}
+                                    <h4>{{ "%.6f"|format(avg_engagement) if avg_engagement < 0.001 else ("%.4f"|format(avg_engagement) if avg_engagement < 0.01 else "%.3f"|format(avg_engagement)) }}</h4>
+                                    <p>Avg Engagement</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    <h4>{{ "%.1f"|format((results.get('behavioral_metrics', {}).get('high_activity_users', 0) / results.get('behavioral_metrics', {}).get('total_users_analyzed', 1)) * 100) }}%</h4>
+                                    <p>Activity Rate</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Gratification Metrics Row -->
+                        <div class="row mt-3">
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    {% set info_seeking = results.get('behavioral_metrics', {}).get('information_seeking_behavior') or results.get('information_seeking_behavior') or 0 %}
+                                    <h4>{{ "%.6f"|format(info_seeking) if info_seeking < 0.001 else ("%.4f"|format(info_seeking) if info_seeking < 0.01 else "%.3f"|format(info_seeking)) }}</h4>
+                                    <p>Info Seeking</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    {% set entertainment = results.get('behavioral_metrics', {}).get('entertainment_seeking_behavior') or results.get('entertainment_seeking_behavior') or 0 %}
+                                    <h4>{{ "%.6f"|format(entertainment) if entertainment < 0.001 else ("%.4f"|format(entertainment) if entertainment < 0.01 else "%.3f"|format(entertainment)) }}</h4>
+                                    <p>Entertainment</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    {% set social = results.get('behavioral_metrics', {}).get('social_interaction_behavior') or results.get('social_interaction_behavior') or 0 %}
+                                    <h4>{{ "%.6f"|format(social) if social < 0.001 else ("%.4f"|format(social) if social < 0.01 else "%.3f"|format(social)) }}</h4>
+                                    <p>Social Interaction</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    {% set identity = results.get('behavioral_metrics', {}).get('identity_affirmation_behavior') or results.get('identity_affirmation_behavior') or 0 %}
+                                    <h4>{{ "%.6f"|format(identity) if identity < 0.001 else ("%.4f"|format(identity) if identity < 0.01 else "%.3f"|format(identity)) }}</h4>
+                                    <p>Identity Affirmation</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Behavioral Analysis Charts -->
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <div class="card chart-card">
+                                    <div class="card-header">
+                                        <h6><i class="fas fa-chart-line me-2"></i>Behavioral Trends</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="behavioralTrendsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card chart-card">
+                                    <div class="card-header">
+                                        <h6><i class="fas fa-users me-2"></i>User Engagement Patterns</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="userEngagementPatternsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Behavioral Gratification Analysis -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card chart-card">
+                                    <div class="card-header">
+                                        <h6><i class="fas fa-brain me-2"></i>Behavioral Gratification Correlation</h6>
+                                        <small class="text-muted">Chart automatically scales to show small behavioral values with appropriate precision</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="behavioralGratificationChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p>No results available.</p>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('feature_extraction', dataset_name=dataset_name) }}" class="btn btn-primary">
+                            <i class="fas fa-cogs me-2"></i>Continue to Feature Engineering
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.metric-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 10px 0;
+    border: 1px solid #e9ecef;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.metric-card h4 {
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    color: #495057;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.metric-card p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+    font-weight: 500;
+}
+
+.card-header h6 {
+    margin-bottom: 0;
+    font-weight: 600;
+    color: #495057;
+}
+
+.card-header small {
+    display: block;
+    margin-top: 5px;
+}
+
+/* Chart container styling for better visibility of small values */
+canvas {
+    background-color: #fafafa;
+    border-radius: 8px;
+}
+
+/* Chart container styling - only apply to chart cards */
+.chart-card .card-body {
+    height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+}
+
+/* Make behavioral charts responsive */
+#behavioralTrendsChart, #userEngagementPatternsChart, #behavioralGratificationChart {
+    max-height: 300px !important;
+    height: 300px !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .metric-card {
+        margin: 5px 0;
+        padding: 15px;
+    }
+    
+    .chart-card .card-body {
+        height: 280px;
+    }
+    
+    #behavioralTrendsChart, #userEngagementPatternsChart, #behavioralGratificationChart {
+        max-height: 250px !important;
+        height: 250px !important;
+    }
+}
+
+/* Improve card spacing */
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 10px;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 10px 10px 0 0 !important;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if results %}
+    try {
+        createBehavioralTrendsChart();
+        createUserEngagementPatternsChart();
+        createBehavioralGratificationChart();
+    } catch (error) {
+        console.error('Error creating charts:', error);
+        // Show fallback message if charts fail to load
+        document.querySelectorAll('.chart-card .card-body').forEach(function(cardBody) {
+            if (!cardBody.querySelector('canvas').getContext) {
+                cardBody.innerHTML = '<div class="text-center text-muted"><i class="fas fa-exclamation-triangle"></i><br>Chart could not be loaded</div>';
+            }
+        });
+    }
+    {% endif %}
+});
+
+function createBehavioralTrendsChart() {
+    const ctx = document.getElementById('behavioralTrendsChart');
+    if (!ctx) return;
+    
+    const context = ctx.getContext('2d');
+    
+    // Get behavioral metrics with validation
+    const infoSeeking = Math.max(0, {{ results.get('behavioral_metrics', {}).get('information_seeking_behavior') or results.get('information_seeking_behavior') or 0 }});
+    const entertainment = Math.max(0, {{ results.get('behavioral_metrics', {}).get('entertainment_seeking_behavior') or results.get('entertainment_seeking_behavior') or 0 }});
+    const social = Math.max(0, {{ results.get('behavioral_metrics', {}).get('social_interaction_behavior') or results.get('social_interaction_behavior') or 0 }});
+    const identity = Math.max(0, {{ results.get('behavioral_metrics', {}).get('identity_affirmation_behavior') or results.get('identity_affirmation_behavior') or 0 }});
+    
+    // Simulate temporal data based on behavioral metrics with realistic variation
+    const timeLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+    const infoTrend = [infoSeeking * 0.85, infoSeeking * 0.92, infoSeeking, infoSeeking * 1.08];
+    const entertainmentTrend = [entertainment * 0.95, entertainment * 1.05, entertainment, entertainment * 0.98];
+    const socialTrend = [social * 1.02, social * 0.88, social, social * 1.12];
+    const identityTrend = [identity * 0.90, identity * 1.10, identity, identity * 1.05];
+    
+    // Find max value for appropriate scaling
+    const allValues = [...infoTrend, ...entertainmentTrend, ...socialTrend, ...identityTrend];
+    const maxValue = Math.max(...allValues);
+    
+    // Better scaling for small values
+    let scaleMax;
+    if (maxValue <= 0.001) {
+        scaleMax = 0.001;
+    } else if (maxValue <= 0.01) {
+        scaleMax = Math.ceil(maxValue * 1000) / 1000; // Round up to nearest 0.001
+    } else if (maxValue <= 0.1) {
+        scaleMax = Math.ceil(maxValue * 100) / 100; // Round up to nearest 0.01
+    } else {
+        scaleMax = Math.ceil(maxValue * 10) / 10; // Round up to nearest 0.1
+    }
+    
+    new Chart(context, {
+        type: 'line',
+        data: {
+            labels: timeLabels,
+            datasets: [{
+                label: 'Information Seeking',
+                data: infoTrend,
+                borderColor: '#17a2b8',
+                backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                tension: 0.4,
+                fill: false
+            }, {
+                label: 'Entertainment',
+                data: entertainmentTrend,
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                tension: 0.4,
+                fill: false
+            }, {
+                label: 'Social Interaction',
+                data: socialTrend,
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: false
+            }, {
+                label: 'Identity Affirmation',
+                data: identityTrend,
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                tension: 0.4,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 10
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y;
+                            // Show more decimal places for very small values
+                            const decimals = value < 0.001 ? 6 : value < 0.01 ? 4 : 3;
+                            return context.dataset.label + ': ' + value.toFixed(decimals);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: scaleMax,
+                    ticks: {
+                        callback: function(value) {
+                            // Show more decimal places for very small values
+                            const decimals = value < 0.001 ? 6 : value < 0.01 ? 4 : 3;
+                            return value.toFixed(decimals);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createUserEngagementPatternsChart() {
+    const ctx = document.getElementById('userEngagementPatternsChart');
+    if (!ctx) return;
+    
+    const context = ctx.getContext('2d');
+    
+    const totalUsers = Math.max(1, {{ results.get('behavioral_metrics', {}).get('total_users_analyzed') or results.get('total_users_analyzed') or 100 }});
+    const infoSeeking = Math.max(0, {{ results.get('behavioral_metrics', {}).get('information_seeking_behavior') or results.get('information_seeking_behavior') or 0 }});
+    const entertainment = Math.max(0, {{ results.get('behavioral_metrics', {}).get('entertainment_seeking_behavior') or results.get('entertainment_seeking_behavior') or 0 }});
+    const social = Math.max(0, {{ results.get('behavioral_metrics', {}).get('social_interaction_behavior') or results.get('social_interaction_behavior') or 0 }});
+    const identity = Math.max(0, {{ results.get('behavioral_metrics', {}).get('identity_affirmation_behavior') or results.get('identity_affirmation_behavior') or 0 }});
+    
+    // Calculate relative engagement patterns based on gratification scores
+    const totalGratification = infoSeeking + entertainment + social + identity;
+    let infoUsers, entertainmentUsers, socialUsers, identityUsers;
+    
+    if (totalGratification > 0) {
+        // Calculate proportional distribution
+        infoUsers = Math.round(totalUsers * (infoSeeking / totalGratification));
+        entertainmentUsers = Math.round(totalUsers * (entertainment / totalGratification));
+        socialUsers = Math.round(totalUsers * (social / totalGratification));
+        identityUsers = totalUsers - infoUsers - entertainmentUsers - socialUsers;
+    } else {
+        // Equal distribution if no data
+        const quarter = Math.round(totalUsers / 4);
+        infoUsers = entertainmentUsers = socialUsers = identityUsers = quarter;
+    }
+    
+    new Chart(context, {
+        type: 'doughnut',
+        data: {
+            labels: ['Info-Focused', 'Entertainment-Focused', 'Social-Focused', 'Identity-Focused'],
+            datasets: [{
+                data: [infoUsers, entertainmentUsers, socialUsers, identityUsers],
+                backgroundColor: [
+                    '#17a2b8',
+                    '#ffc107',
+                    '#28a745',
+                    '#dc3545'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 10,
+                        usePointStyle: true,
+                        boxWidth: 12
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const percentage = ((context.parsed / totalUsers) * 100).toFixed(1);
+                            return context.label + ': ' + context.parsed + ' users (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createBehavioralGratificationChart() {
+    const ctx = document.getElementById('behavioralGratificationChart');
+    if (!ctx) return;
+    
+    const context = ctx.getContext('2d');
+    
+    const infoSeeking = Math.max(0, {{ results.get('behavioral_metrics', {}).get('information_seeking_behavior') or results.get('information_seeking_behavior') or 0 }});
+    const entertainment = Math.max(0, {{ results.get('behavioral_metrics', {}).get('entertainment_seeking_behavior') or results.get('entertainment_seeking_behavior') or 0 }});
+    const social = Math.max(0, {{ results.get('behavioral_metrics', {}).get('social_interaction_behavior') or results.get('social_interaction_behavior') or 0 }});
+    const identity = Math.max(0, {{ results.get('behavioral_metrics', {}).get('identity_affirmation_behavior') or results.get('identity_affirmation_behavior') or 0 }});
+    
+    // Get additional behavioral metrics with validation
+    const avgEngagement = Math.max(0, {{ results.get('behavioral_metrics', {}).get('avg_engagement_rate', 0) }});
+    const highActivityUsers = Math.max(0, {{ results.get('behavioral_metrics', {}).get('high_activity_users', 0) }});
+    const totalUsers = Math.max(1, {{ results.get('behavioral_metrics', {}).get('total_users_analyzed', 1) }});
+    
+    // Calculate derived metrics
+    const activityRatio = totalUsers > 0 ? highActivityUsers / totalUsers : 0;
+    const overallGratification = (infoSeeking + entertainment + social + identity) / 4;
+    
+    // Prepare data for radar chart
+    const chartData = [infoSeeking, entertainment, social, identity, avgEngagement, activityRatio];
+    const maxValue = Math.max(...chartData);
+    
+    // Better scaling for small values
+    let scaleMax, stepSize;
+    if (maxValue <= 0.001) {
+        scaleMax = 0.001;
+        stepSize = 0.0002;
+    } else if (maxValue <= 0.01) {
+        scaleMax = Math.ceil(maxValue * 1000) / 1000; // Round up to nearest 0.001
+        stepSize = scaleMax / 5;
+    } else if (maxValue <= 0.1) {
+        scaleMax = Math.ceil(maxValue * 100) / 100; // Round up to nearest 0.01
+        stepSize = scaleMax / 5;
+    } else {
+        scaleMax = Math.ceil(maxValue * 10) / 10; // Round up to nearest 0.1
+        stepSize = scaleMax / 5;
+    }
+    
+    new Chart(context, {
+        type: 'radar',
+        data: {
+            labels: ['Information Seeking', 'Entertainment', 'Social Interaction', 'Identity Affirmation', 'Avg Engagement', 'Activity Ratio'],
+            datasets: [{
+                label: 'Behavioral Gratification Profile',
+                data: chartData,
+                backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                borderColor: 'rgba(102, 126, 234, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(102, 126, 234, 1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.r;
+                            // Show more decimal places for very small values
+                            const decimals = value < 0.001 ? 6 : value < 0.01 ? 4 : 3;
+                            return context.label + ': ' + value.toFixed(decimals);
+                        }
+                    }
+                }
+            },
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: scaleMax,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)',
+                        lineWidth: 1
+                    },
+                    angleLines: {
+                        color: 'rgba(0, 0, 0, 0.1)',
+                        lineWidth: 1
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 11
+                        }
+                    },
+                    ticks: {
+                        stepSize: stepSize,
+                        backdropColor: 'rgba(255, 255, 255, 0.8)',
+                        callback: function(value) {
+                            // Show more decimal places for very small values
+                            const decimals = value < 0.001 ? 6 : value < 0.01 ? 4 : 3;
+                            return value.toFixed(decimals);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

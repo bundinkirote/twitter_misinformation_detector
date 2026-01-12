@@ -1,0 +1,1533 @@
+{% extends "base.html" %}
+
+{% block title %}AI Misinformation Detection - Real-Time Prediction{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin: 20px auto;
+            padding: 30px;
+            max-width: 1400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .prediction-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .prediction-header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .prediction-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        /* Input Section */
+        .input-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 20px;
+            align-items: end;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .tweet-input {
+            width: 100%;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 1rem;
+            min-height: 120px;
+            resize: vertical;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .tweet-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+        
+        .model-select, .transformer-select, .dataset-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            background: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .model-select:focus, .transformer-select:focus, .dataset-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+        
+        .options-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        
+        .predict-btn {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .predict-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .predict-btn .loading-spinner {
+            display: none;
+            margin-right: 10px;
+        }
+        
+        .predict-btn.loading .loading-spinner {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Results Section */
+        .results-section {
+            display: none;
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+        
+        .prediction-badge {
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .prediction-badge.misinformation {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+        }
+        
+        .prediction-badge.legitimate {
+            background: linear-gradient(135deg, #51cf66, #40c057);
+            color: white;
+        }
+        
+        .confidence-meter {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .confidence-bar {
+            width: 200px;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .score-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .score-card h4 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        
+        .score-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .score-description {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        /* Visualizations */
+        .visualization-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+        
+        .viz-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .viz-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        .viz-content {
+            display: none;
+            padding: 20px 0;
+        }
+        
+        .viz-content.active {
+            display: block;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        
+        /* Source Attribution */
+        .source-attribution {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .source-attribution h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .source-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .source-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        /* History Panel */
+        .history-panel {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .history-item {
+            padding: 15px;
+            border-bottom: 1px solid #f8f9fa;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .history-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .history-time {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .history-text {
+            font-size: 0.9rem;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .history-result {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .input-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .main-container {
+                margin: 10px;
+                padding: 20px;
+            }
+        }
+        
+        /* Error States */
+        .error-message {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        /* Performance Info */
+        .performance-info {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .performance-info h6 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+        
+        /* Model Selection Enhancements */
+        .model-select option[style*="bold"] {
+            background: #e8f5e8;
+        }
+        
+        .model-select option:disabled {
+            color: #999;
+            font-style: italic;
+        }
+        
+        /* SHAP Explainability Styles */
+        .shap-explanation {
+            padding: 20px;
+        }
+        
+        .shap-feature {
+            padding: 12px 15px;
+            margin: 8px 0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .shap-feature:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .shap-feature.positive {
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
+            border-left: 4px solid #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.2);
+        }
+        
+        .shap-feature.negative {
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+            border-left: 4px solid #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.2);
+        }
+        
+        .shap-value {
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        .shap-value.positive {
+            color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+        
+        .shap-value.negative {
+            color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        
+        .shap-section {
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .shap-section h6 {
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .feature-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .progress {
+            background-color: rgba(0,0,0,0.1);
+        }
+        
+        /* Enhanced SHAP feature list */
+        .shap-feature .d-flex {
+            align-items: center;
+        }
+        
+        .shap-feature .progress {
+            opacity: 0.7;
+        }
+        
+        .shap-feature:hover .progress {
+            opacity: 1;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="main-container">
+        <!-- Header -->
+        <div class="prediction-header">
+            <h1><i class="fas fa-brain"></i> AI Misinformation Detection</h1>
+            <p>Advanced real-time prediction with comprehensive analysis and explainable AI</p>
+        </div>
+
+        <!-- Input Section -->
+        <div class="input-section">
+            <form id="predictionForm">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label for="tweetText"><i class="fas fa-edit"></i> Enter Text to Analyze</label>
+                            <textarea 
+                                id="tweetText" 
+                                name="text" 
+                                class="tweet-input" 
+                                placeholder="Enter tweet, social media post, or any text content for misinformation analysis..."
+                                maxlength="5000"
+                                required
+                            ></textarea>
+                            <div class="char-counter">
+                                <span id="charCount">0</span>/5000 characters
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="modelSelect"><i class="fas fa-brain"></i> Select Trained Model</label>
+                            <select id="modelSelect" name="model_id" class="model-select" required>
+                                <option value="">Loading models...</option>
+                            </select>
+                        </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button type="submit" class="predict-btn">
+                                <i class="fas fa-spinner loading-spinner"></i>
+                                <i class="fas fa-search"></i>
+                                Analyze Content
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="errorText"></span>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="results-section">
+            <div class="results-header">
+                <div>
+                    <div id="predictionBadge" class="prediction-badge"></div>
+                    <div class="mt-2">
+                        <small id="processingTime"></small>
+                    </div>
+                </div>
+                <div class="confidence-meter">
+                    <span>Confidence:</span>
+                    <div class="confidence-bar">
+                        <div id="confidenceFill" class="confidence-fill"></div>
+                    </div>
+                    <span id="confidenceValue">0%</span>
+                </div>
+            </div>
+
+            <div class="results-grid">
+                <div class="score-card">
+                    <h4><i class="fas fa-robot"></i> Primary Model</h4>
+                    <div id="sentimentScore" class="score-value">--</div>
+                    <div id="sentimentDesc" class="score-description">Selected model prediction...</div>
+                </div>
+
+                <div class="score-card">
+                    <h4><i class="fas fa-brain"></i> Zero-Shot</h4>
+                    <div id="behavioralScore" class="score-value">--</div>
+                    <div id="behavioralDesc" class="score-description">Live prediction...</div>
+                </div>
+
+                <div class="score-card">
+                    <h4><i class="fas fa-check-circle"></i> Fact Check</h4>
+                    <div id="factCheckScore" class="score-value">--</div>
+                    <div id="factCheckDesc" class="score-description">External validation...</div>
+                </div>
+
+                <div class="score-card">
+                    <h4><i class="fas fa-chart-line"></i> Consensus</h4>
+                    <div id="overallScore" class="score-value">--</div>
+                    <div id="overallDesc" class="score-description">Agreement analysis...</div>
+                </div>
+            </div>
+
+            <!-- Visualization Tabs -->
+            <div class="visualization-tabs">
+                <button class="viz-tab active" onclick="showVizTab('features')">
+                    <i class="fas fa-chart-bar"></i> Feature Importance
+                </button>
+                <button class="viz-tab" onclick="showVizTab('shap')" id="shapTab" style="display: none;">
+                    <i class="fas fa-lightbulb"></i> SHAP Explainability
+                </button>
+                <button class="viz-tab" onclick="showVizTab('confidence')">
+                    <i class="fas fa-tachometer-alt"></i> Confidence Breakdown
+                </button>
+                <button class="viz-tab" onclick="showVizTab('factCheck')">
+                    <i class="fas fa-search"></i> Fact Check
+                </button>
+            </div>
+
+            <!-- Feature Importance Chart -->
+            <div id="featuresViz" class="viz-content active">
+                <div class="chart-container">
+                    <canvas id="featureChart"></canvas>
+                </div>
+            </div>
+
+            <!-- SHAP Explainability -->
+            <div id="shapViz" class="viz-content">
+                <div id="shapExplanation" class="shap-explanation">
+                    <p class="text-muted">SHAP explanations will appear here when available.</p>
+                </div>
+            </div>
+
+            <!-- Confidence Breakdown Chart -->
+            <div id="confidenceViz" class="viz-content">
+                <div class="chart-container">
+                    <canvas id="confidenceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Fact Check Results -->
+            <div id="factCheckViz" class="viz-content">
+                <div id="factCheckResults" class="p-3">
+                    <p class="text-muted">Fact-checking results will appear here when available.</p>
+                </div>
+            </div>
+
+            <!-- Source Attribution -->
+            <div class="source-attribution">
+                <h4><i class="fas fa-tags"></i> Source Attribution</h4>
+                <div id="sourceTags" class="source-tags">
+                    <!-- Dynamic source tags will be added here -->
+                </div>
+                <div class="mt-3">
+                    <small><strong>Model:</strong> <span id="modelUsed">--</span></small><br>
+                    <small><strong>Transformer:</strong> <span id="transformerUsed">--</span></small><br>
+                    <small><strong>Interaction ID:</strong> <span id="interactionId">--</span></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Panel -->
+        <div class="history-panel">
+            <h4><i class="fas fa-history"></i> Recent Predictions</h4>
+            <div id="historyList">
+                <p class="text-muted">No predictions yet. Start by analyzing some content!</p>
+            </div>
+        </div>
+
+        <!-- Sample Tweets -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb me-2"></i>Try These Sample Tweets</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-info btn-sm mb-2 w-100" onclick="loadSample('legitimate')">
+                            Load Legitimate Sample
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-warning btn-sm mb-2 w-100" onclick="loadSample('misinformation')">
+                            Load Misinformation Sample
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Gratification Motives Info -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-secondary text-white">
+                <h3 class="mb-0">User Gratification Motives</h3>
+            </div>
+            <div class="card-body">
+                <p class="lead">Understanding why users share political content helps identify potential misinformation:</p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <i class="fas fa-laugh-beam fs-1 text-primary mb-3"></i>
+                                <h5 class="card-title">Entertainment</h5>
+                                <p class="card-text">Content shared for amusement often contains exaggerated claims</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <i class="fas fa-id-card fs-1 text-primary mb-3"></i>
+                                <h5 class="card-title">Identity</h5>
+                                <p class="card-text">Content that reinforces political identity may distort facts</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <i class="fas fa-users fs-1 text-primary mb-3"></i>
+                                <h5 class="card-title">Connection</h5>
+                                <p class="card-text">Content shared to build social capital may prioritize engagement over accuracy</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Global variables
+    let currentSession = null;
+    let predictionHistory = [];
+    let featureChart = null;
+    let confidenceChart = null;
+
+    // DOM elements
+    const tweetText = document.getElementById('tweetText');
+    const charCount = document.getElementById('charCount');
+    const predictionForm = document.getElementById('predictionForm');
+    const modelSelect = document.getElementById('modelSelect');
+    const resultsSection = document.getElementById('resultsSection');
+    const errorMessage = document.getElementById('errorMessage');
+    const predictBtn = document.querySelector('.predict-btn');
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAvailableModels();
+        loadSessionHistory();
+        
+        // Character counter
+        tweetText.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+        });
+        
+        // Form submission
+        predictionForm.addEventListener('submit', handlePrediction);
+    });
+
+    // Load available models with performance metrics
+    async function loadAvailableModels() {
+        try {
+            const availableDatasets = {{ available_datasets|default([])|tojson }};
+            const currentDataset = {{ current_dataset|default(null)|tojson }};
+            const totalDatasets = {{ total_datasets|default(0) }};
+            
+            if (availableDatasets && availableDatasets.length > 0) {
+                displayEnsembleSelection(availableDatasets, currentDataset);
+                
+                // Show summary info
+                if (totalDatasets > 0) {
+                    console.log(`Loaded ${totalDatasets} datasets with ensemble models`);
+                }
+            } else {
+                showError('No trained ensemble models available. Using zero-shot classification only.');
+            }
+        } catch (error) {
+            console.error('Error loading ensemble models:', error);
+            showError('Failed to load available ensemble models');
+        }
+    }
+    
+    // Display ensemble model selection
+    function displayEnsembleSelection(datasets, currentDataset) {
+        modelSelect.innerHTML = '<option value="">Select an ensemble model...</option>';
+        
+        if (!datasets || datasets.length === 0) {
+            modelSelect.innerHTML = '<option value="zero_shot">Zero-Shot Classification (Live)</option>';
+            return;
+        }
+        
+        // Add ensemble models for each dataset
+        datasets.forEach(dataset => {
+            // Add dataset header if multiple datasets
+            if (datasets.length > 1) {
+                const header = document.createElement('option');
+                header.disabled = true;
+                header.textContent = `--- ${dataset.display_name} ---`;
+                header.style.fontWeight = 'bold';
+                header.style.background = '#f8f9fa';
+                modelSelect.appendChild(header);
+            }
+            
+            // Add ensemble options based on availability
+            if (dataset.tuned_package) {
+                const option = document.createElement('option');
+                option.value = `ensemble_tuned_${dataset.name}`;
+                option.setAttribute('data-dataset', dataset.name);
+                option.setAttribute('data-type', 'tuned');
+                option.textContent = `🏆 ${dataset.display_name} - Tuned Ensemble (${dataset.algorithms_count} models)`;
+                option.style.fontWeight = 'bold';
+                option.style.color = '#28a745';
+                modelSelect.appendChild(option);
+            }
+            
+            if (dataset.base_package) {
+                const option = document.createElement('option');
+                option.value = `ensemble_base_${dataset.name}`;
+                option.setAttribute('data-dataset', dataset.name);
+                option.setAttribute('data-type', 'base');
+                option.textContent = `⭐ ${dataset.display_name} - Base Ensemble (${dataset.algorithms_count} models)`;
+                option.style.color = '#007bff';
+                modelSelect.appendChild(option);
+            }
+            
+            if (dataset.individual_models > 0 && !dataset.ensemble_ready) {
+                const option = document.createElement('option');
+                option.value = `individual_${dataset.name}`;
+                option.setAttribute('data-dataset', dataset.name);
+                option.setAttribute('data-type', 'individual');
+                option.textContent = `📊 ${dataset.display_name} - Individual Models (${dataset.individual_models} available)`;
+                option.style.color = '#6c757d';
+                modelSelect.appendChild(option);
+            }
+        });
+        
+        // Add zero-shot option as fallback
+        const zeroShotSeparator = document.createElement('option');
+        zeroShotSeparator.disabled = true;
+        zeroShotSeparator.textContent = '--- Live Classification ---';
+        modelSelect.appendChild(zeroShotSeparator);
+        
+        const zeroShotOption = document.createElement('option');
+        zeroShotOption.value = 'zero_shot';
+        zeroShotOption.textContent = 'Zero-Shot Classification (Live)';
+        zeroShotOption.style.color = '#dc3545';
+        modelSelect.appendChild(zeroShotOption);
+        
+        // Display ensemble performance summary
+        displayEnsemblePerformanceSummary(datasets);
+        
+        // Auto-select current dataset's best model if available
+        if (currentDataset) {
+            const currentDs = datasets.find(d => d.name === currentDataset);
+            if (currentDs) {
+                if (currentDs.tuned_package) {
+                    modelSelect.value = `ensemble_tuned_${currentDataset}`;
+                } else if (currentDs.base_package) {
+                    modelSelect.value = `ensemble_base_${currentDataset}`;
+                } else if (currentDs.individual_models > 0) {
+                    modelSelect.value = `individual_${currentDataset}`;
+                }
+            }
+        }
+    }
+    
+    // Display ensemble performance summary
+    function displayEnsemblePerformanceSummary(datasets) {
+        if (!datasets || datasets.length === 0) return;
+        
+        // Calculate summary statistics
+        const totalDatasets = datasets.length;
+        const ensembleReady = datasets.filter(d => d.ensemble_ready).length;
+        const totalModels = datasets.reduce((sum, d) => sum + d.algorithms_count, 0);
+        const bestDataset = datasets.find(d => d.tuned_package) || datasets.find(d => d.base_package) || datasets[0];
+        
+        // Add or update performance info display
+        let perfInfo = document.getElementById('performanceInfo');
+        if (!perfInfo) {
+            perfInfo = document.createElement('div');
+            perfInfo.id = 'performanceInfo';
+            perfInfo.className = 'performance-info mt-3 p-3 bg-light rounded';
+            modelSelect.parentElement.appendChild(perfInfo);
+        }
+        
+        perfInfo.innerHTML = `
+            <h6><i class="fas fa-chart-bar"></i> Ensemble Model Summary</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Best Option:</strong> ${bestDataset.display_name}<br>
+                    <strong>Package Type:</strong> ${bestDataset.best_method.charAt(0).toUpperCase() + bestDataset.best_method.slice(1)}<br>
+                    <strong>Models Count:</strong> ${bestDataset.algorithms_count}
+                </div>
+                <div class="col-md-6">
+                    <strong>Total Datasets:</strong> ${totalDatasets}<br>
+                    <strong>Ensemble Ready:</strong> ${ensembleReady}<br>
+                    <strong>Zero-Shot:</strong> Available
+                </div>
+            </div>
+            ${ensembleReady === 0 ? '<div class="alert alert-info mt-2 mb-0"><i class="fas fa-info-circle"></i> No ensemble packages found. Individual models and zero-shot classification available.</div>' : ''}
+        `;
+    }
+
+    // Handle prediction
+    async function handlePrediction(e) {
+        e.preventDefault();
+        
+        const text = tweetText.value.trim();
+        const selectedModel = modelSelect.value;
+        
+        if (!text) {
+            showError('Please enter some text to analyze');
+            return;
+        }
+        
+        if (!selectedModel) {
+            showError('Please select a model');
+            return;
+        }
+
+        // Show loading state
+        setLoadingState(true);
+        hideError();
+        resultsSection.style.display = 'none';
+
+        try {
+            const formData = new FormData(predictionForm);
+            // Override model selection with our ID format
+            formData.set('model_id', selectedModel);
+            
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                displayComprehensiveResults(result, text);
+                addToHistory(result, text);
+            } else {
+                showError(result.message || 'Prediction failed');
+            }
+        } catch (error) {
+            console.error('Prediction error:', error);
+            showError('Network error occurred. Please try again.');
+        } finally {
+            setLoadingState(false);
+        }
+    }
+
+    // Display comprehensive results with all sources
+    function displayComprehensiveResults(result, originalText) {
+        // Handle the actual response structure from our prediction endpoint
+        const predictionValue = result.prediction || result.prediction_label || 'uncertain';
+        const isMisinformation = predictionValue === 'misinformation' || predictionValue === 1;
+        const confidence = ((result.confidence || 0) * 100).toFixed(1);
+        
+        // Update main prediction badge
+        const badge = document.getElementById('predictionBadge');
+        badge.textContent = isMisinformation ? 'MISINFORMATION DETECTED' : 'CONTENT APPEARS LEGITIMATE';
+        badge.className = `prediction-badge ${isMisinformation ? 'misinformation' : 'legitimate'}`;
+        
+        // Update confidence meter
+        const confidenceFill = document.getElementById('confidenceFill');
+        const confidenceValue = document.getElementById('confidenceValue');
+        confidenceFill.style.width = confidence + '%';
+        confidenceFill.style.background = isMisinformation ? '#ff6b6b' : '#51cf66';
+        confidenceValue.textContent = confidence + '%';
+        
+        // Update processing time
+        document.getElementById('processingTime').textContent = 
+            `Processed in ${(result.processing_time || 0.5).toFixed(2)}s`;
+        
+        // Update score cards with comprehensive results
+        updateScoreCards(result);
+        
+        // Update source attribution
+        updateSourceAttribution(result);
+        
+        // Create visualizations
+        createFeatureImportanceChart(result);
+        createConfidenceBreakdownChart(result);
+        displayFactCheckResults(result);
+        
+        // Display SHAP explanation if available
+        if (result.shap_explanation) {
+            displaySHAPExplanation(result.shap_explanation);
+            document.getElementById('shapTab').style.display = 'block';
+        } else {
+            document.getElementById('shapTab').style.display = 'none';
+        }
+        
+        // Display model comparison if available
+        if (result.comparison) {
+            displayModelComparison(result.comparison);
+        }
+        
+        // Show results
+        resultsSection.style.display = 'block';
+    }
+
+    // Update score cards with multi-source results
+    function updateScoreCards(result) {
+        // Primary Model Score (main prediction)
+        const primaryPrediction = result.prediction || result.prediction_label || 'N/A';
+        document.getElementById('sentimentScore').textContent = 
+            primaryPrediction === 'misinformation' ? 'Misinformation' : 
+            primaryPrediction === 'legitimate' ? 'Legitimate' : 
+            primaryPrediction === 1 ? 'Misinformation' : 
+            primaryPrediction === 0 ? 'Legitimate' : 'N/A';
+        document.getElementById('sentimentDesc').textContent = 
+            `${result.method || 'Model'}: ${((result.confidence || 0) * 100).toFixed(1)}%`;
+        
+        // Zero-Shot Comparison Score
+        const comparison = result.comparison || {};
+        const zeroShotPrediction = comparison.zero_shot_prediction || {};
+        if (comparison.zero_shot_prediction) {
+            const zeroShotLabel = zeroShotPrediction.prediction === 'misinformation' ? 'Misinformation' : 
+                                 zeroShotPrediction.prediction === 'legitimate' ? 'Legitimate' : 'Unknown';
+            document.getElementById('behavioralScore').textContent = zeroShotLabel;
+            document.getElementById('behavioralDesc').textContent = 
+                `Zero-Shot: ${((zeroShotPrediction.confidence || 0) * 100).toFixed(1)}%`;
+        } else {
+            // Fallback to sentiment if no comparison available
+            const sentiment = result.sentiment_analysis || {};
+            document.getElementById('behavioralScore').textContent = 
+                sentiment.sentiment || 'Unknown';
+            document.getElementById('behavioralDesc').textContent = 
+                `Sentiment: ${((sentiment.confidence || 0) * 100).toFixed(1)}%`;
+        }
+        
+        // Fact Check Score
+        const factCheck = result.fact_check || {};
+        document.getElementById('factCheckScore').textContent = 
+            factCheck.verdict || 'Unknown';
+        document.getElementById('factCheckDesc').textContent = 
+            `Sources: ${factCheck.sources_checked || 0} checked, ${((factCheck.confidence || 0) * 100).toFixed(1)}%`;
+        
+        // Overall Score - show ensemble superiority if comparison available
+        if (comparison.ensemble_superior !== undefined) {
+            const confidenceDiff = (comparison.confidence_difference * 100).toFixed(1);
+            document.getElementById('overallScore').textContent = 
+                comparison.ensemble_superior ? 'Ensemble Superior' : 'Zero-Shot Better';
+            document.getElementById('overallDesc').textContent = 
+                `Advantage: ${confidenceDiff}% ${comparison.ensemble_superior ? '(Ensemble)' : '(Zero-Shot)'}`;
+        } else {
+            // Fallback to combined confidence
+            const sentiment = result.sentiment_analysis || {};
+            const overallConfidence = (
+                (result.confidence || 0) * 0.5 + 
+                (sentiment.confidence || 0) * 0.3 + 
+                (factCheck.confidence || 0) * 0.2
+            );
+            document.getElementById('overallScore').textContent = 
+                overallConfidence > 0.7 ? 'High Confidence' : 
+                overallConfidence > 0.4 ? 'Medium Confidence' : 'Low Confidence';
+            document.getElementById('overallDesc').textContent = 
+                `Combined: ${(overallConfidence * 100).toFixed(1)}%`;
+        }
+    }
+
+    // Update source attribution
+    function updateSourceAttribution(result) {
+        document.getElementById('modelUsed').textContent = result.method || result.model_name || 'Unknown';
+        document.getElementById('transformerUsed').textContent = result.transformer_used || 'BERT-based';
+        document.getElementById('interactionId').textContent = result.timestamp || 'N/A';
+        
+        // Add source tags
+        const sourceTags = document.getElementById('sourceTags');
+        sourceTags.innerHTML = '';
+        
+        const sources = ['ML Model', 'Transformer', 'Sentiment Analysis', 'Fact Checking'];
+        sources.forEach(source => {
+            const tag = document.createElement('span');
+            tag.className = 'source-tag';
+            tag.textContent = source;
+            sourceTags.appendChild(tag);
+        });
+    }
+
+    // Create feature importance chart
+    function createFeatureImportanceChart(result) {
+        const ctx = document.getElementById('featureChart').getContext('2d');
+        
+        if (featureChart) {
+            featureChart.destroy();
+        }
+        
+        // Get SHAP explanation or create dummy data
+        const shapExplanation = result.shap_explanation || {};
+        const features = shapExplanation.feature_importance || shapExplanation.top_positive_features || [];
+        
+        let labels, values;
+        if (features.length > 0) {
+            // Handle SHAP feature format: [['feature_name', value], ...]
+            labels = features.slice(0, 10).map(f => Array.isArray(f) ? f[0] : (f.feature || 'Unknown'));
+            values = features.slice(0, 10).map(f => Math.abs(Array.isArray(f) ? f[1] : (f.value || 0)));
+        } else {
+            // Create dummy data if no features available
+            labels = ['Text Features', 'Sentiment', 'Behavioral', 'Network', 'Linguistic'];
+            values = [0.8, 0.6, 0.4, 0.3, 0.2];
+        }
+        
+        featureChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Feature Importance',
+                    data: values,
+                    backgroundColor: '#667eea',
+                    borderColor: '#764ba2',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Create confidence breakdown chart
+    function createConfidenceBreakdownChart(result) {
+        const ctx = document.getElementById('confidenceChart').getContext('2d');
+        
+        if (confidenceChart) {
+            confidenceChart.destroy();
+        }
+        
+        const sentiment = result.sentiment_analysis || {};
+        const factCheck = result.fact_check || {};
+        
+        confidenceChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Model Confidence', 'Sentiment Analysis', 'Fact Check', 'SHAP Features'],
+                datasets: [{
+                    data: [
+                        (result.confidence || 0) * 100,
+                        (sentiment.confidence || 0) * 100,
+                        (factCheck.confidence || 0) * 100,
+                        result.shap_explanation?.explanation_available ? 85 : 0
+                    ],
+                    backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#28a745']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Display fact-check results
+    function displayFactCheckResults(result) {
+        const factCheckContainer = document.getElementById('factCheckResults');
+        
+        if (!result.fact_check) {
+            factCheckContainer.innerHTML = '<p class="text-muted">No fact-checking results available for this prediction.</p>';
+            return;
+        }
+        
+        const factCheck = result.fact_check;
+        const verdict = factCheck.verdict || 'unknown';
+        const confidence = factCheck.confidence || 0;
+        const sourcesChecked = factCheck.sources_checked || 0;
+        
+        let verdictClass = 'secondary';
+        let verdictIcon = 'question-circle';
+        
+        if (verdict.toLowerCase().includes('true') || verdict.toLowerCase().includes('verified')) {
+            verdictClass = 'success';
+            verdictIcon = 'check-circle';
+        } else if (verdict.toLowerCase().includes('false') || verdict.toLowerCase().includes('misleading')) {
+            verdictClass = 'danger';
+            verdictIcon = 'times-circle';
+        } else if (verdict.toLowerCase().includes('mixed') || verdict.toLowerCase().includes('partial')) {
+            verdictClass = 'warning';
+            verdictIcon = 'exclamation-triangle';
+        }
+        
+        factCheckContainer.innerHTML = `
+            <div class="fact-check-result">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-${verdictClass}">
+                            <div class="card-body text-center">
+                                <i class="fas fa-${verdictIcon} fa-3x text-${verdictClass} mb-3"></i>
+                                <h5 class="card-title text-${verdictClass}">${verdict.toUpperCase()}</h5>
+                                <p class="card-text">Fact-Check Verdict</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6><i class="fas fa-chart-bar"></i> Verification Details</h6>
+                                <div class="mb-2">
+                                    <strong>Confidence:</strong> ${(confidence * 100).toFixed(1)}%
+                                    <div class="progress mt-1">
+                                        <div class="progress-bar bg-${verdictClass}" style="width: ${confidence * 100}%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Sources Checked:</strong> ${sourcesChecked}
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Status:</strong> 
+                                    <span class="badge bg-${verdictClass}">${factCheck.error ? 'Error' : 'Completed'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${factCheck.error ? `
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Note:</strong> ${factCheck.error}
+                    </div>
+                ` : ''}
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>About Fact-Checking:</strong> This analysis cross-references the content with external 
+                    fact-checking databases and trusted sources to verify claims and identify potential misinformation.
+                </div>
+            </div>
+        `;
+    }
+
+    // Show visualization tab
+    function showVizTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.viz-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // Show content
+        document.querySelectorAll('.viz-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById(tabName + 'Viz').classList.add('active');
+    }
+
+    // Display SHAP explanation
+    function displaySHAPExplanation(shapData) {
+        const shapContainer = document.getElementById('shapExplanation');
+        
+        if (!shapData || !shapData.explanation_available) {
+            shapContainer.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>SHAP Explanation Not Available</strong>
+                    <p class="mb-0 mt-2">
+                        ${shapData?.error || 'SHAP explanations are only available for ensemble models.'}
+                    </p>
+                    ${shapData?.error && shapData.error.includes('JSON serialization') ? 
+                        '<p class="mb-0 mt-1"><small>This is a temporary issue that will be resolved in the next update.</small></p>' : ''}
+                </div>
+            `;
+            return;
+        }
+        
+        let html = `
+            <div class="shap-section">
+                <h6><i class="fas fa-brain"></i> AI Model Explanation</h6>
+                <p class="text-muted">SHAP (SHapley Additive exPlanations) values show how each feature contributes to the prediction:</p>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Model:</strong> ${shapData.model_name || 'Ensemble'}<br>
+                        <strong>Method:</strong> ${shapData.explanation_method || 'SHAP Analysis'}<br>
+                        <strong>Features Analyzed:</strong> ${shapData.total_features || 'N/A'}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Expected Value:</strong> ${shapData.expected_value ? shapData.expected_value.toFixed(4) : 'N/A'}<br>
+                        <strong>Prediction Impact:</strong> ${shapData.prediction_value ? shapData.prediction_value.toFixed(4) : 'N/A'}<br>
+                        <strong>Total Features:</strong> ${shapData.feature_importance ? shapData.feature_importance.length : 'N/A'}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (shapData.top_positive_features && shapData.top_positive_features.length > 0) {
+            html += `
+                <div class="shap-section">
+                    <h6><i class="fas fa-arrow-up text-danger"></i> Features Supporting Misinformation Detection</h6>
+                    <p class="text-muted mb-3">These features increase the likelihood of misinformation classification:</p>
+                    ${shapData.top_positive_features.map((feature, index) => {
+                        // Handle both array format [name, value] and object format {feature, shap_value}
+                        const featureName = Array.isArray(feature) ? feature[0] : feature.feature;
+                        const featureValue = Array.isArray(feature) ? feature[1] : feature.shap_value;
+                        const impact = Math.abs(featureValue);
+                        const barWidth = Math.min((impact / 0.1) * 100, 100); // Scale for visualization
+                        
+                        return `
+                            <div class="shap-feature positive mb-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="feature-name">${featureName}</span>
+                                    <span class="shap-value positive">+${featureValue.toFixed(4)}</span>
+                                </div>
+                                <div class="progress mt-1" style="height: 4px;">
+                                    <div class="progress-bar bg-danger" style="width: ${barWidth}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        
+        if (shapData.top_negative_features && shapData.top_negative_features.length > 0) {
+            html += `
+                <div class="shap-section">
+                    <h6><i class="fas fa-arrow-down text-success"></i> Features Supporting Legitimacy Detection</h6>
+                    <p class="text-muted mb-3">These features decrease the likelihood of misinformation classification:</p>
+                    ${shapData.top_negative_features.map((feature, index) => {
+                        // Handle both array format [name, value] and object format {feature, shap_value}
+                        const featureName = Array.isArray(feature) ? feature[0] : feature.feature;
+                        const featureValue = Array.isArray(feature) ? feature[1] : feature.shap_value;
+                        const impact = Math.abs(featureValue);
+                        const barWidth = Math.min((impact / 0.1) * 100, 100); // Scale for visualization
+                        
+                        return `
+                            <div class="shap-feature negative mb-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="feature-name">${featureName}</span>
+                                    <span class="shap-value negative">${featureValue.toFixed(4)}</span>
+                                </div>
+                                <div class="progress mt-1" style="height: 4px;">
+                                    <div class="progress-bar bg-success" style="width: ${barWidth}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        
+        // Show all feature importance if available
+        if (shapData.feature_importance && shapData.feature_importance.length > 0) {
+            const topFeatures = shapData.feature_importance.slice(0, 15); // Show top 15
+            html += `
+                <div class="shap-section">
+                    <h6><i class="fas fa-list"></i> Top Feature Importance (All)</h6>
+                    <p class="text-muted mb-3">Complete ranking of feature contributions:</p>
+                    <div class="row">
+                        ${topFeatures.map((feature, index) => {
+                            const featureName = Array.isArray(feature) ? feature[0] : feature.feature;
+                            const featureValue = Array.isArray(feature) ? feature[1] : feature.shap_value;
+                            const isPositive = featureValue > 0;
+                            
+                            return `
+                                <div class="col-md-6 mb-2">
+                                    <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                                        <span class="small">${index + 1}. ${featureName}</span>
+                                        <span class="badge ${isPositive ? 'bg-danger' : 'bg-success'} small">
+                                            ${featureValue.toFixed(4)}
+                                        </span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += `
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-lightbulb"></i>
+                <strong>How to interpret SHAP values:</strong>
+                <ul class="mb-0 mt-2">
+                    <li><strong>Positive values (red):</strong> Push the prediction towards misinformation</li>
+                    <li><strong>Negative values (green):</strong> Push the prediction towards legitimate content</li>
+                    <li><strong>Larger absolute values:</strong> Indicate stronger influence on the prediction</li>
+                    <li><strong>Expected value:</strong> The baseline prediction without any features</li>
+                </ul>
+            </div>
+        `;
+        
+        shapContainer.innerHTML = html;
+    }
+
+    // Display model comparison
+    function displayModelComparison(comparison) {
+        // Find a good place to display the comparison - let's add it to the fact check results area
+        const factCheckContainer = document.getElementById('factCheckResults');
+        
+        if (!comparison.ensemble_prediction || !comparison.zero_shot_prediction) {
+            return; // No comparison to show
+        }
+        
+        const ensemble = comparison.ensemble_prediction;
+        const zeroShot = comparison.zero_shot_prediction;
+        const ensembleBetter = comparison.ensemble_superior;
+        const confidenceDiff = (comparison.confidence_difference * 100).toFixed(1);
+        
+        const comparisonHtml = `
+            <div class="alert alert-info mt-3">
+                <h6><i class="fas fa-balance-scale"></i> Model Comparison Results</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card ${ensembleBetter ? 'border-success' : 'border-secondary'}">
+                            <div class="card-header ${ensembleBetter ? 'bg-success text-white' : 'bg-light'}">
+                                <strong>🏆 Ensemble Model ${ensembleBetter ? '(Winner)' : ''}</strong>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Prediction:</strong> ${ensemble.prediction}</p>
+                                <p><strong>Confidence:</strong> ${(ensemble.confidence * 100).toFixed(1)}%</p>
+                                <p><strong>Method:</strong> ${ensemble.method}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card ${!ensembleBetter ? 'border-success' : 'border-secondary'}">
+                            <div class="card-header ${!ensembleBetter ? 'bg-success text-white' : 'bg-light'}">
+                                <strong>🤖 Zero-Shot Model ${!ensembleBetter ? '(Winner)' : ''}</strong>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Prediction:</strong> ${zeroShot.prediction}</p>
+                                <p><strong>Confidence:</strong> ${(zeroShot.confidence * 100).toFixed(1)}%</p>
+                                <p><strong>Method:</strong> ${zeroShot.method}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3 text-center">
+                    <strong>Performance Advantage:</strong> 
+                    <span class="badge bg-${ensembleBetter ? 'success' : 'warning'} fs-6">
+                        ${ensembleBetter ? 'Ensemble' : 'Zero-Shot'} is ${confidenceDiff}% more confident
+                    </span>
+                </div>
+            </div>
+        `;
+        
+        // Add the comparison after the existing fact check content
+        factCheckContainer.innerHTML += comparisonHtml;
+    }
+
+    // Add to history
+    function addToHistory(result, text) {
+        const historyItem = {
+            timestamp: new Date().toLocaleString(),
+            text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+            result: result.prediction || result.prediction_label || 'Unknown',
+            confidence: result.confidence || 0
+        };
+        
+        predictionHistory.unshift(historyItem);
+        predictionHistory = predictionHistory.slice(0, 10); // Keep last 10
+        
+        updateHistoryDisplay();
+    }
+
+    // Update history display
+    function updateHistoryDisplay() {
+        const historyList = document.getElementById('historyList');
+        
+        if (predictionHistory.length === 0) {
+            historyList.innerHTML = '<p class="text-muted">No predictions yet. Start by analyzing some content!</p>';
+            return;
+        }
+        
+        historyList.innerHTML = predictionHistory.map(item => `
+            <div class="history-item">
+                <div class="history-time">${item.timestamp}</div>
+                <div class="history-text">${item.text}</div>
+                <div class="history-result ${item.result.toLowerCase()}">${item.result} (${(item.confidence * 100).toFixed(1)}%)</div>
+            </div>
+        `).join('');
+    }
+
+    // Load session history
+    function loadSessionHistory() {
+        // In a real implementation, this would load from the server
+        // For now, we'll just initialize empty
+        predictionHistory = [];
+    }
+
+    // Set loading state
+    function setLoadingState(loading) {
+        predictBtn.disabled = loading;
+        
+        if (loading) {
+            predictBtn.classList.add('loading');
+            predictBtn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> Analyzing...';
+        } else {
+            predictBtn.classList.remove('loading');
+            predictBtn.innerHTML = '<i class="fas fa-search"></i> Analyze Content';
+        }
+    }
+
+    // Show error
+    function showError(message) {
+        document.getElementById('errorText').textContent = message;
+        errorMessage.classList.add('show');
+    }
+
+    // Hide error
+    function hideError() {
+        errorMessage.classList.remove('show');
+    }
+
+    // Sample texts for testing
+    function loadSample(type) {
+        const samples = {
+            legitimate: "The President announced new infrastructure funding that will create jobs and improve transportation. This initiative is part of the government's long-term development plan.",
+            misinformation: "BREAKING: Secret documents reveal government plans to control all social media! They're hiding the truth from citizens. Share this before it gets deleted!"
+        };
+        
+        tweetText.value = samples[type];
+        charCount.textContent = samples[type].length;
+    }
+</script>
+{% endblock %}

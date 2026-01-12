@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}About the Project{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="display-4 text-center">About the Project</h1>
+        <p class="lead text-center">Understanding Political Misinformation on Social Media in Kenya</p>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h3 class="mb-0">Research Objectives</h3>
+            </div>
+            <div class="card-body">
+                <div class="card mb-4 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">General Objective</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="lead mb-0">To assess the influence of technology deployment strategies on performance of commercial banks in Kenya.</p>
+                    </div>
+                </div>
+                
+                <h4 class="mb-3">Specific Objectives</h4>
+                <div class="list-group mb-3">
+                    <div class="list-group-item list-group-item-action d-flex gap-3 py-3">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">1</div>
+                        <div>To investigate the effect of technology integration practices on the performance of commercial banks in Kenya.</div>
+                    </div>
+                    <div class="list-group-item list-group-item-action d-flex gap-3 py-3">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">2</div>
+                        <div>To determine the effect of scalability of technology deployment on performance of commercial banks in Kenya.</div>
+                    </div>
+                    <div class="list-group-item list-group-item-action d-flex gap-3 py-3">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">3</div>
+                        <div>To examine the effect of efficiency of technology management on performance of commercial banks in Kenya.</div>
+                    </div>
+                    <div class="list-group-item list-group-item-action d-flex gap-3 py-3">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">4</div>
+                        <div>To assess the moderating effect of industry regulations on the relationship between technology deployment strategies and performance of commercial banks in Kenya.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Conceptual Framework</h3>
+            </div>
+            <div class="card-body">
+                <p>This study integrates the interaction between political misinformation on social media, user content gratification motives, and the application of machine learning models for misinformation detection. It is designed to illustrate the dynamic relationships between these core components within the Kenyan digital political environment, focusing on Twitter (now X) as the primary data source.</p>
+                
+                <h4 class="mt-4">Components of the Framework</h4>
+                
+                <div class="row mt-4">
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-secondary text-white text-center">
+                                <i class="fas fa-exclamation-triangle fs-3 mb-2"></i>
+                                <h5 class="mb-0">Political Misinformation on X</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">This refers to the spread of false, misleading, or manipulated political content through tweets associated with hashtags such as #RutoMustGo and #RejectFinanceBill2024. The misinformation propagates through various formats including text, images, videos, and memes, exploiting the viral nature of social media.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-secondary text-white text-center">
+                                <i class="fas fa-users fs-3 mb-2"></i>
+                                <h5 class="mb-0">User Content Gratification Motives</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Drawing from Uses and Gratifications Theory, this component represents why users engage with political content online. Key motives identified include:</p>
+                                <ul class="list-group list-group-flush mb-3">
+                                    <li class="list-group-item"><i class="fas fa-laugh-beam text-primary me-2"></i><strong>Entertainment:</strong> Seeking amusement or emotional stimulation.</li>
+                                    <li class="list-group-item"><i class="fas fa-id-card text-primary me-2"></i><strong>Identity:</strong> Reinforcing social or political identity.</li>
+                                    <li class="list-group-item"><i class="fas fa-users text-primary me-2"></i><strong>Connection:</strong> Building relationships or social capital within communities.</li>
+                                </ul>
+                                <p class="card-text">These motives influence the depth and quality of political discourse, affecting the likelihood of misinformation consumption and dissemination.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-secondary text-white text-center">
+                                <i class="fas fa-robot fs-3 mb-2"></i>
+                                <h5 class="mb-0">Machine Learning-Based Detection</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Machine learning algorithms (e.g., Logistic Regression, Naive Bayes, Gradient Boosting) are applied to the collected social media data to:</p>
+                                <ul class="list-group list-group-flush mb-3">
+                                    <li class="list-group-item"><i class="fas fa-code text-primary me-2"></i>Extract linguistic and contextual features</li>
+                                    <li class="list-group-item"><i class="fas fa-tags text-primary me-2"></i>Classify tweets as misinformation or factual</li>
+                                    <li class="list-group-item"><i class="fas fa-chart-line text-primary me-2"></i>Predict patterns to mitigate misinformation spread</li>
+                                </ul>
+                                <p class="card-text">This technological intervention acts as the mechanism for automating misinformation identification, enhancing scalability and real-time response.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 class="mt-5">Relationships and Interaction</h4>
+                <ul>
+                    <li>Political misinformation leverages user gratification motives to increase engagement, thereby amplifying reach and impact.</li>
+                    <li>User motives can both facilitate the spread of misinformation and serve as indicators for detection models, as linguistic and engagement patterns correlate with gratification types.</li>
+                    <li>Machine learning models utilize features derived from content and user behavior to classify misinformation, which can inform platform moderation and policy.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h3 class="mb-0">Methodology</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-header bg-light">
+                                <h4 class="mb-0"><i class="fas fa-database text-primary me-2"></i>Data Collection</h4>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Twitter/X data was collected using hashtags related to Kenyan political discourse, including:</p>
+                                <div class="list-group mb-3">
+                                    <div class="list-group-item list-group-item-action d-flex align-items-center">
+                                        <i class="fab fa-twitter text-primary me-3"></i>
+                                        <span>#RutoMustGo</span>
+                                    </div>
+                                    <div class="list-group-item list-group-item-action d-flex align-items-center">
+                                        <i class="fab fa-twitter text-primary me-3"></i>
+                                        <span>#RejectFinanceBill2024</span>
+                                    </div>
+                                    <div class="list-group-item list-group-item-action d-flex align-items-center">
+                                        <i class="fab fa-twitter text-primary me-3"></i>
+                                        <span>Other politically relevant hashtags</span>
+                                    </div>
+                                </div>
+                                <p class="card-text">The collected tweets were manually labeled as misinformation or factual content by domain experts.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-header bg-light">
+                                <h4 class="mb-0"><i class="fas fa-chart-pie text-primary me-2"></i>Analysis Approach</h4>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">The study employs a mixed-methods approach:</p>
+                                <div class="row g-4 mb-3">
+                                    <div class="col-md-6">
+                                        <div class="card bg-primary text-white h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title"><i class="fas fa-calculator me-2"></i>Quantitative</h5>
+                                                <p class="card-text">Machine learning models to classify tweets and measure accuracy</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card bg-success text-white h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title"><i class="fas fa-search me-2"></i>Qualitative</h5>
+                                                <p class="card-text">Content analysis to identify patterns and themes in misinformation</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="card-text">This approach allows for both automated detection and deeper understanding of misinformation dynamics.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

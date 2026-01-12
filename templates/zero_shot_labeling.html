@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+
+{% block title %}Zero-Shot Labeling - {{ dataset_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Progress Sidebar -->
+        <div class="col-md-3">
+            <div class="progress-sidebar">
+                <h5><i class="fas fa-list-check me-2"></i>Pipeline Progress</h5>
+                <div class="progress-step completed">
+                    <i class="fas fa-upload"></i>
+                    <span>Data Upload</span>
+                </div>
+                <div class="progress-step completed">
+                    <i class="fas fa-language"></i>
+                    <span>Language Detection</span>
+                </div>
+                <div class="progress-step active">
+                    <i class="fas fa-robot"></i>
+                    <span>Zero-Shot Labeling</span>
+                </div>
+                <div class="progress-step">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Feature Engineering</span>
+                </div>
+                <div class="progress-step">
+                    <i class="fas fa-brain"></i>
+                    <span>Model Training</span>
+                </div>
+                <div class="progress-step">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Results</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <div class="text-center mb-4">
+                <h1 class="display-4 text-primary">
+                    <i class="fas fa-robot me-3"></i>Zero-Shot Labeling
+                </h1>
+                <p class="lead text-muted">Automatic pseudo-labeling using transformer models</p>
+            </div>
+
+            <!-- Dataset Info -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <div class="stat-item">
+                                        <div class="fw-bold text-primary" id="totalSamples">Loading...</div>
+                                        <small class="text-muted">Total Samples</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-item">
+                                        <div class="fw-bold text-success" id="embeddingModel">Loading...</div>
+                                        <small class="text-muted">Selected Model</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-item">
+                                        <div class="fw-bold text-info" id="languageInfo">Loading...</div>
+                                        <small class="text-muted">Languages</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-item">
+                                        <div class="fw-bold text-warning" id="hasLabels">Loading...</div>
+                                        <small class="text-muted">Labeled Data</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Language Detection Results -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="alert alert-info border-0 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1"><i class="fas fa-language me-2"></i>Language Detection Complete</h6>
+                                <small class="text-muted">
+                                    Selected embedding model: <strong id="detectedEmbeddingModel">Loading...</strong> 
+                                    based on <span id="detectedLanguages">language analysis</span>
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <i class="fas fa-check-circle text-success fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zero-Shot Configuration -->
+            <div class="config-container">
+                <h3 class="mb-4">Zero-Shot Classification Configuration</h3>
+                
+                <div class="row">
+                    <!-- Model Selection -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header">
+                                <h5><i class="fas fa-brain me-2"></i>Model Configuration</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Classification Model</strong></label>
+                                    <select class="form-select" id="zeroShotModel">
+                                        <option value="facebook/bart-large-mnli">BART-Large-MNLI (Recommended)</option>
+                                        <option value="microsoft/DialoGPT-medium">DialoGPT-Medium</option>
+                                        <option value="roberta-large-mnli">RoBERTa-Large-MNLI</option>
+                                    </select>
+                                    <small class="text-muted">Model will be selected based on language detection results</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Confidence Threshold</strong></label>
+                                    <input type="range" class="form-range" min="0.1" max="0.95" step="0.05" value="0.7" id="confidenceThreshold">
+                                    <small class="text-muted">Current: <span id="confidenceValue">0.7</span></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Classification Labels -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header">
+                                <h5><i class="fas fa-tags me-2"></i>Classification Labels</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="labelSet" id="binaryLabels" value="binary" checked>
+                                        <label class="form-check-label" for="binaryLabels">
+                                            <strong>Binary Classification</strong>
+                                        </label>
+                                    </div>
+                                    <small class="text-muted ms-4">• Misinformation • Legitimate News</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="labelSet" id="multiLabels" value="multi">
+                                        <label class="form-check-label" for="multiLabels">
+                                            <strong>Multi-class Classification</strong>
+                                        </label>
+                                    </div>
+                                    <small class="text-muted ms-4">• Fake News • Satire • Opinion • Factual</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="kenyanContext" checked>
+                                        <label class="form-check-label" for="kenyanContext">
+                                            Use Kenyan Political Context
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Options -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header">
+                                <h5><i class="fas fa-cogs me-2"></i>Advanced Options</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="factCheckComparison" checked>
+                                            <label class="form-check-label" for="factCheckComparison">
+                                                Compare with Fact-Check Corpus
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Cross-reference with known fact-checked content</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="uncertaintyQuantification" checked>
+                                            <label class="form-check-label" for="uncertaintyQuantification">
+                                                Uncertainty Quantification
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Calculate prediction uncertainty scores</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="saveResults" checked>
+                                            <label class="form-check-label" for="saveResults">
+                                                Save Labeled Dataset
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Export results for model training</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="startZeroShotLabeling()">
+                        <i class="fas fa-play me-2"></i>Start Zero-Shot Labeling
+                    </button>
+                </div>
+            </div>
+
+            <!-- Processing Status -->
+            <div class="processing-status" id="processingStatus" style="display: none;">
+                <div class="text-center mb-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <h4 class="mt-3" id="statusMessage">Initializing zero-shot classification...</h4>
+                    <div class="progress mt-3" style="height: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%" id="progressBar"></div>
+                    </div>
+                </div>
+
+                <div class="log-container">
+                    <h5><i class="fas fa-terminal me-2"></i>Classification Log</h5>
+                    <div class="log-messages" id="logMessages">
+                        <div class="log-message">Ready to start zero-shot classification...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let datasetName = "{{ dataset_name }}";
+    let datasetInfo = {};
+    let languageResults = null;
+    let classificationResults = {};
+
+    // Load dataset and language detection info on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDatasetInfo();
+        loadLanguageResults();
+        updateConfidenceDisplay();
+    });
+
+    // Update confidence threshold display
+    document.getElementById('confidenceThreshold').addEventListener('input', function() {
+        document.getElementById('confidenceValue').textContent = this.value;
+    });
+
+    async function loadDatasetInfo() {
+        try {
+            const response = await fetch(`/api/dataset-info/${datasetName}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                datasetInfo = data.info;
+                document.getElementById('totalSamples').textContent = datasetInfo.total_samples || 'Unknown';
+                document.getElementById('hasLabels').textContent = datasetInfo.has_labels ? 'Yes' : 'No';
+            }
+        } catch (error) {
+            console.error('Error loading dataset info:', error);
+        }
+    }
+
+    async function loadLanguageResults() {
+        try {
+            const response = await fetch(`/api/language-detection-results/${datasetName}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                languageResults = data.results;
+                document.getElementById('embeddingModel').textContent = languageResults.embedding_model;
+                document.getElementById('languageInfo').textContent = languageResults.dominant_language;
+                document.getElementById('detectedEmbeddingModel').textContent = languageResults.embedding_model;
+                document.getElementById('detectedLanguages').textContent = languageResults.dominant_language;
+                
+                // Update model selection based on language detection
+                updateModelSelection();
+            }
+        } catch (error) {
+            console.error('Error loading language results:', error);
+            document.getElementById('embeddingModel').textContent = 'BERT (Default)';
+            document.getElementById('languageInfo').textContent = 'English';
+            document.getElementById('detectedEmbeddingModel').textContent = 'BERT (Default)';
+            document.getElementById('detectedLanguages').textContent = 'English';
+        }
+    }
+
+    function updateModelSelection() {
+        const modelSelect = document.getElementById('zeroShotModel');
+        
+        if (languageResults && languageResults.embedding_model === 'XLM-RoBERTa') {
+            // For multilingual content, prefer multilingual models
+            modelSelect.innerHTML = `
+                <option value="facebook/bart-large-mnli">BART-Large-MNLI (Multilingual)</option>
+                <option value="joeddav/xlm-roberta-large-xnli">XLM-RoBERTa-Large-XNLI (Recommended)</option>
+                <option value="microsoft/DialoGPT-medium">DialoGPT-Medium</option>
+            `;
+            modelSelect.value = 'joeddav/xlm-roberta-large-xnli';
+        }
+    }
+
+    function updateConfidenceDisplay() {
+        const slider = document.getElementById('confidenceThreshold');
+        const display = document.getElementById('confidenceValue');
+        
+        slider.addEventListener('input', function() {
+            display.textContent = this.value;
+        });
+    }
+
+    async function startZeroShotLabeling() {
+        // Collect configuration
+        const config = {
+            dataset_name: datasetName,
+            model: document.getElementById('zeroShotModel').value,
+            confidence_threshold: parseFloat(document.getElementById('confidenceThreshold').value),
+            label_set: document.querySelector('input[name="labelSet"]:checked').value,
+            kenyan_context: document.getElementById('kenyanContext').checked,
+            fact_check_comparison: document.getElementById('factCheckComparison').checked,
+            uncertainty_quantification: document.getElementById('uncertaintyQuantification').checked,
+            save_results: document.getElementById('saveResults').checked
+        };
+
+        // Hide config and show processing
+        document.querySelector('.config-container').style.display = 'none';
+        document.getElementById('processingStatus').style.display = 'block';
+
+        // Start processing simulation
+        simulateProcessing();
+
+        try {
+            const response = await fetch('/api/zero-shot-classify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                classificationResults = data.results;
+                // Redirect to results page
+                setTimeout(() => {
+                    window.location.href = `/zero_shot_results/${datasetName}`;
+                }, 2000);
+            } else {
+                throw new Error(data.error || 'Classification failed');
+            }
+        } catch (error) {
+            addLogMessage(`Error: ${error.message}`);
+            console.error('Zero-shot classification error:', error);
+        }
+    }
+
+    function simulateProcessing() {
+        const steps = [
+            { progress: 10, message: 'Loading transformer model...', log: 'Model loaded successfully' },
+            { progress: 25, message: 'Preprocessing text data...', log: 'Text preprocessing complete' },
+            { progress: 50, message: 'Running zero-shot classification...', log: 'Classification in progress...' },
+            { progress: 75, message: 'Calculating confidence scores...', log: 'Confidence scores computed' },
+            { progress: 90, message: 'Applying uncertainty quantification...', log: 'Uncertainty analysis complete' },
+            { progress: 100, message: 'Zero-shot labeling complete!', log: 'Results ready for review' }
+        ];
+
+        let currentStep = 0;
+        const interval = setInterval(() => {
+            if (currentStep < steps.length) {
+                const step = steps[currentStep];
+                document.getElementById('progressBar').style.width = step.progress + '%';
+                document.getElementById('statusMessage').textContent = step.message;
+                addLogMessage(step.log);
+                currentStep++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 1500);
+    }
+
+    function addLogMessage(message) {
+        const logMessages = document.getElementById('logMessages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'log-message';
+        messageDiv.innerHTML = `<span class="timestamp">${new Date().toLocaleTimeString()}</span> ${message}`;
+        logMessages.appendChild(messageDiv);
+        logMessages.scrollTop = logMessages.scrollHeight;
+    }
+</script>
+
+<style>
+.config-container {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.processing-status {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.log-container {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.log-messages {
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.log-message {
+    margin-bottom: 0.5rem;
+}
+
+.timestamp {
+    color: #888;
+}
+
+.stat-item {
+    padding: 1rem;
+    text-align: center;
+}
+
+.progress-sidebar {
+    position: sticky;
+    top: 2rem;
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.progress-step {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-left: 3px solid #e9ecef;
+    padding-left: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.progress-step.completed {
+    border-left-color: #28a745;
+    color: #28a745;
+}
+
+.progress-step.active {
+    border-left-color: #007bff;
+    color: #007bff;
+    font-weight: bold;
+}
+
+.progress-step i {
+    margin-right: 0.5rem;
+    width: 20px;
+}
+</style>
+{% endblock %}

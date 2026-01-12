@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Tweet Prediction - Misinformation Detection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .prediction-result {
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .misinformation {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+        .legitimate {
+            background: linear-gradient(135deg, #51cf66, #40c057);
+            color: white;
+        }
+        .confidence-bar {
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #e9ecef;
+        }
+        .confidence-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        .feature-importance {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .loading {
+            display: none;
+        }
+        .tweet-input {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .user-metadata {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-shield-alt"></i> Misinformation Detection
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Dashboard</a>
+                <a class="nav-link active" href="/live-prediction">Live Prediction</a>
+                <a class="nav-link" href="/fact-check-management">Fact-Check</a>
+                <a class="nav-link" href="/analytics">Analytics</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-twitter"></i> Live Tweet Analysis</h4>
+                        <p class="mb-0 text-muted">Enter a tweet to analyze for potential misinformation</p>
+                    </div>
+                    <div class="card-body">
+                        <form id="predictionForm">
+                            <div class="mb-3">
+                                <label for="tweetText" class="form-label">Tweet Text</label>
+                                <textarea class="form-control tweet-input" id="tweetText" 
+                                         placeholder="Enter the tweet text here..." required></textarea>
+                                <div class="form-text">
+                                    <span id="charCount">0</span>/280 characters
+                                </div>
+                            </div>
+
+                            <div class="user-metadata">
+                                <h6><i class="fas fa-user"></i> User Metadata (Optional)</h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <label for="followers" class="form-label">Followers</label>
+                                        <input type="number" class="form-control" id="followers" placeholder="0">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="following" class="form-label">Following</label>
+                                        <input type="number" class="form-control" id="following" placeholder="0">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="tweets" class="form-label">Total Tweets</label>
+                                        <input type="number" class="form-control" id="tweets" placeholder="0">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check mt-4">
+                                            <input class="form-check-input" type="checkbox" id="verified">
+                                            <label class="form-check-label" for="verified">
+                                                Verified Account
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-4">
+                                        <label for="retweets" class="form-label">Retweets</label>
+                                        <input type="number" class="form-control" id="retweets" placeholder="0">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="likes" class="form-label">Likes</label>
+                                        <input type="number" class="form-control" id="likes" placeholder="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="includeExplanation" checked>
+                                    <label class="form-check-label" for="includeExplanation">
+                                        Include detailed explanation
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="validateCorpus" checked>
+                                    <label class="form-check-label" for="validateCorpus">
+                                        Validate against fact-check corpus
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-search"></i> Analyze Tweet
+                            </button>
+                        </form>
+
+                        <div class="loading mt-3">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border text-primary me-3" role="status"></div>
+                                <span>Analyzing tweet through AI pipeline...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" style="display: none;">
+                    <div class="prediction-result" id="predictionResult">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h4 id="predictionLabel">
+                                    <i id="predictionIcon"></i>
+                                    <span id="predictionText"></span>
+                                </h4>
+                                <p id="predictionDescription"></p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>Confidence Level</h6>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" id="confidenceFill"></div>
+                                </div>
+                                <small id="confidenceText" class="mt-1 d-block"></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Analysis -->
+                    <div class="card mt-3" id="detailedAnalysis">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-bar"></i> Detailed Analysis</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Class Probabilities</h6>
+                                    <div class="mb-2">
+                                        <small>Legitimate</small>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" id="legitimateProb"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <small>Misinformation</small>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-danger" id="misinformationProb"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Model Information</h6>
+                                    <p id="modelInfo" class="small text-muted"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature Importance -->
+                    <div class="card mt-3" id="explanationCard" style="display: none;">
+                        <div class="card-header">
+                            <h5><i class="fas fa-lightbulb"></i> AI Explanation</h5>
+                        </div>
+                        <div class="card-body">
+                            <p id="explanationText"></p>
+                            
+                            <h6>Top Contributing Features</h6>
+                            <div class="feature-importance" id="featureImportance">
+                                <!-- Feature importance will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fact-Check Validation -->
+                    <div class="card mt-3" id="validationCard" style="display: none;">
+                        <div class="card-header">
+                            <h5><i class="fas fa-check-circle"></i> Fact-Check Validation</h5>
+                        </div>
+                        <div class="card-body" id="validationContent">
+                            <!-- Validation results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> How It Works</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-language"></i> Language Detection</h6>
+                            <small class="text-muted">Automatically detects English or Swahili content</small>
+                        </div>
+                        <div class="mb-3">
+                            <h6><i class="fas fa-brain"></i> AI Analysis</h6>
+                            <small class="text-muted">BERT/XLM-RoBERTa embeddings + TF-IDF features</small>
+                        </div>
+                        <div class="mb-3">
+                            <h6><i class="fas fa-chart-line"></i> Behavioral Analysis</h6>
+                            <small class="text-muted">RAT/RCT theoretical frameworks</small>
+                        </div>
+                        <div class="mb-3">
+                            <h6><i class="fas fa-balance-scale"></i> Classification</h6>
+                            <small class="text-muted">Logistic Regression with GridSearchCV</small>
+                        </div>
+                        <div class="mb-3">
+                            <h6><i class="fas fa-search"></i> Fact-Check</h6>
+                            <small class="text-muted">Validation against known claims corpus</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5><i class="fas fa-history"></i> Recent Predictions</h5>
+                    </div>
+                    <div class="card-body" id="recentPredictions">
+                        <p class="text-muted">No recent predictions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Character counter
+        document.getElementById('tweetText').addEventListener('input', function() {
+            const charCount = this.value.length;
+            document.getElementById('charCount').textContent = charCount;
+            
+            if (charCount > 280) {
+                document.getElementById('charCount').style.color = 'red';
+            } else {
+                document.getElementById('charCount').style.color = 'inherit';
+            }
+        });
+
+        // Form submission
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const tweetText = document.getElementById('tweetText').value.trim();
+            if (!tweetText) {
+                alert('Please enter tweet text');
+                return;
+            }
+
+            // Show loading
+            document.querySelector('.loading').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+
+            // Prepare data
+            const data = {
+                tweet_text: tweetText,
+                user_metadata: {
+                    followers: parseInt(document.getElementById('followers').value) || 0,
+                    following: parseInt(document.getElementById('following').value) || 0,
+                    tweets: parseInt(document.getElementById('tweets').value) || 0,
+                    verified: document.getElementById('verified').checked ? 1 : 0,
+                    retweet_count: parseInt(document.getElementById('retweets').value) || 0,
+                    favorite_count: parseInt(document.getElementById('likes').value) || 0
+                },
+                include_explanation: document.getElementById('includeExplanation').checked,
+                validate_with_corpus: document.getElementById('validateCorpus').checked
+            };
+
+            try {
+                const response = await fetch('/api/predict-tweet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayResults(result);
+                    addToRecentPredictions(tweetText, result);
+                } else {
+                    alert('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+            } finally {
+                document.querySelector('.loading').style.display = 'none';
+            }
+        });
+
+        function displayResults(result) {
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+            
+            // Main prediction result
+            const resultDiv = document.getElementById('predictionResult');
+            const isMinsinformation = result.prediction === 1;
+            
+            resultDiv.className = 'prediction-result ' + (isMinsinformation ? 'misinformation' : 'legitimate');
+            
+            document.getElementById('predictionIcon').className = isMinsinformation ? 'fas fa-exclamation-triangle' : 'fas fa-check-circle';
+            document.getElementById('predictionText').textContent = result.prediction_label.toUpperCase();
+            document.getElementById('predictionDescription').textContent = isMinsinformation ? 
+                'This tweet shows indicators of potential misinformation' : 
+                'This tweet appears to be legitimate';
+
+            // Confidence
+            const confidence = Math.round(result.confidence * 100);
+            document.getElementById('confidenceFill').style.width = confidence + '%';
+            document.getElementById('confidenceFill').className = 'confidence-fill ' + 
+                (isMinsinformation ? 'bg-danger' : 'bg-success');
+            document.getElementById('confidenceText').textContent = confidence + '% confidence';
+
+            // Class probabilities
+            if (result.class_probabilities) {
+                const legit = Math.round(result.class_probabilities.legitimate * 100);
+                const misinfo = Math.round(result.class_probabilities.misinformation * 100);
+                
+                document.getElementById('legitimateProb').style.width = legit + '%';
+                document.getElementById('legitimateProb').textContent = legit + '%';
+                document.getElementById('misinformationProb').style.width = misinfo + '%';
+                document.getElementById('misinformationProb').textContent = misinfo + '%';
+            }
+
+            // Model info
+            document.getElementById('modelInfo').textContent = 
+                `Model: ${result.model_used || 'Unknown'} | Accuracy: ${(result.model_accuracy * 100).toFixed(1)}%`;
+
+            // Explanation
+            if (result.explanation && result.explanation.explanation_text) {
+                document.getElementById('explanationCard').style.display = 'block';
+                document.getElementById('explanationText').textContent = result.explanation.explanation_text;
+                
+                // Feature importance
+                if (result.explanation.top_contributing_features) {
+                    displayFeatureImportance(result.explanation.top_contributing_features);
+                }
+            }
+
+            // Fact-check validation
+            if (result.fact_check_validation) {
+                document.getElementById('validationCard').style.display = 'block';
+                displayValidation(result.fact_check_validation);
+            }
+        }
+
+        function displayFeatureImportance(features) {
+            const container = document.getElementById('featureImportance');
+            container.innerHTML = '';
+            
+            features.slice(0, 10).forEach(feature => {
+                const div = document.createElement('div');
+                div.className = 'mb-2';
+                
+                const importance = Math.abs(feature.contribution);
+                const maxImportance = Math.max(...features.map(f => Math.abs(f.contribution)));
+                const width = (importance / maxImportance) * 100;
+                
+                div.innerHTML = `
+                    <div class="d-flex justify-content-between">
+                        <small>${feature.feature.replace(/_/g, ' ')}</small>
+                        <small>${feature.contribution.toFixed(3)}</small>
+                    </div>
+                    <div class="progress" style="height: 5px;">
+                        <div class="progress-bar bg-info" style="width: ${width}%"></div>
+                    </div>
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+
+        function displayValidation(validation) {
+            const container = document.getElementById('validationContent');
+            
+            if (validation.matched) {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-database"></i> Match Found in Fact-Check Corpus</h6>
+                        <p><strong>Similar Claim:</strong> ${validation.corpus_claim}</p>
+                        <p><strong>Verdict:</strong> <span class="badge bg-secondary">${validation.corpus_verdict}</span></p>
+                        <p><strong>Similarity Score:</strong> ${(validation.similarity_score * 100).toFixed(1)}%</p>
+                        ${validation.corpus_source ? `<p><strong>Source:</strong> ${validation.corpus_source}</p>` : ''}
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-search"></i> No Match Found</h6>
+                        <p>This tweet does not match any known fact-checked claims in our corpus.</p>
+                        <p><strong>Best Similarity:</strong> ${(validation.similarity_score * 100).toFixed(1)}%</p>
+                    </div>
+                `;
+            }
+        }
+
+        function addToRecentPredictions(tweetText, result) {
+            const container = document.getElementById('recentPredictions');
+            
+            // Create new prediction item
+            const item = document.createElement('div');
+            item.className = 'border-bottom pb-2 mb-2';
+            
+            const preview = tweetText.length > 50 ? tweetText.substring(0, 50) + '...' : tweetText;
+            const isMinsinformation = result.prediction === 1;
+            const confidence = Math.round(result.confidence * 100);
+            
+            item.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+                    <span class="badge ${isMinsinformation ? 'bg-danger' : 'bg-success'}">${confidence}%</span>
+                </div>
+                <p class="small mb-1">${preview}</p>
+                <small class="text-muted">${result.prediction_label}</small>
+            `;
+            
+            // Add to top of recent predictions
+            if (container.children.length === 1 && container.children[0].textContent.includes('No recent predictions')) {
+                container.innerHTML = '';
+            }
+            
+            container.insertBefore(item, container.firstChild);
+            
+            // Keep only last 5 predictions
+            while (container.children.length > 5) {
+                container.removeChild(container.lastChild);
+            }
+        }
+    </script>
+</body>
+</html>

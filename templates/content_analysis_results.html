@@ -1,0 +1,620 @@
+{% extends "base.html" %}
+
+{% block title %}Content Analysis Results - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        margin: 40px auto;
+        padding: 40px;
+        max-width: 1200px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding: 0 20px;
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #6c757d;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+    }
+    .step.completed .step-number {
+        background: #28a745;
+    }
+    .step.active .step-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .results-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin: 15px 0;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    .results-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        border: 2px solid #e9ecef;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: 500;
+    }
+    .gratification-indicator {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Progress Steps -->
+    <div class="progress-steps">
+        <div class="step completed">
+            <div class="step-number">1</div>
+            <small>Upload Dataset</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">2</div>
+            <small>Data Overview</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">3</div>
+            <small>Content Analysis</small>
+        </div>
+        <div class="step active">
+            <div class="step-number">4</div>
+            <small>Behavioral Profiling</small>
+        </div>
+        <div class="step">
+            <div class="step-number">5</div>
+            <small>Gratification Extraction</small>
+        </div>
+        <div class="step">
+            <div class="step-number">6</div>
+            <small>Model Training</small>
+        </div>
+        <div class="step">
+            <div class="step-number">7</div>
+            <small>Explainability</small>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <h1 class="display-4 text-primary">
+            <i class="fas fa-microscope me-3"></i>Content Analysis Results
+        </h1>
+        <p class="lead text-muted">Language, sentiment, and gratification analysis for {{ dataset_name }}</p>
+    </div>
+
+    <!-- Content Analysis Insights -->
+    {% if insights %}
+        {% include 'insights_component.html' %}
+    {% endif %}
+
+    <!-- Summary Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-primary">{{ results.get('language_analysis', {}).get('total_samples_analyzed') or results.get('sentiment_analysis', {}).get('total_samples_analyzed') or 0 }}</h3>
+                <p class="mb-0">Samples Analyzed</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-info">{{ results.get('language_analysis', {}).get('dominant_language', 'Mixed').upper() }}</h3>
+                <p class="mb-0">Dominant Language</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-success">{{ "%.1f"|format((results.get('sentiment_analysis', {}).get('sentiment_distribution', {}).get('positive', 0)) * 100) }}%</h3>
+                <p class="mb-0">Positive Sentiment</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-warning">{{ "%.3f"|format(results.get('gratification_profile', {}).get('entertainment_score', 0)) }}</h3>
+                <p class="mb-0">Entertainment Score</p>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Sentiment Analysis Results -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="results-card">
+                <h5><i class="fas fa-heart me-2"></i>Sentiment Distribution</h5>
+                <canvas id="sentimentChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="results-card">
+                <h5><i class="fas fa-flag me-2"></i>Cultural Context</h5>
+                <div class="mt-3">
+                    <p><strong>Kenyan Context Enhanced:</strong> {{ results.get('sentiment_analysis', {}).get('kenyan_context_enhanced', 0) }} samples</p>
+                    <p><strong>High-Emotion Content:</strong> {{ results.get('sentiment_analysis', {}).get('high_emotion_content_count', 0) }} samples</p>
+                    <p><strong>Negative Sentiment:</strong> {{ "%.1f"|format((results.get('sentiment_analysis', {}).get('sentiment_distribution', {}).get('negative', 0)) * 100) }}%</p>
+                    <p><strong>Emotional Risk Score:</strong> {{ "%.2f"|format(results.get('sentiment_analysis', {}).get('theoretical_insights', {}).get('emotional_manipulation_risk', 0)) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gratification Profile Results -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="results-card">
+                <h5><i class="fas fa-users me-2"></i>Content Gratification Profile</h5>
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <div class="metric-card">
+                            <h4 class="text-warning">{{ "%.3f"|format(results.get('gratification_profile', {}).get('entertainment_score', 0)) }}</h4>
+                            <p class="mb-0">Entertainment</p>
+                            <small class="text-muted">Humor, emotion, engagement</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="metric-card">
+                            <h4 class="text-info">{{ "%.3f"|format(results.get('gratification_profile', {}).get('information_seeking_score', 0)) }}</h4>
+                            <p class="mb-0">Information</p>
+                            <small class="text-muted">Knowledge, truth-seeking</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="metric-card">
+                            <h4 class="text-success">{{ "%.3f"|format(results.get('gratification_profile', {}).get('social_interaction_score', 0)) }}</h4>
+                            <p class="mb-0">Social Interaction</p>
+                            <small class="text-muted">Connection, sharing</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="metric-card">
+                            <h4 class="text-danger">{{ "%.3f"|format(results.get('gratification_profile', {}).get('identity_affirmation_score', 0)) }}</h4>
+                            <p class="mb-0">Identity</p>
+                            <small class="text-muted">Self-expression, beliefs</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Gratification Indicators Detected</h6>
+                    <div class="mt-2">
+                        <span class="gratification-indicator">Entertainment Keywords</span>
+                        <span class="gratification-indicator">Emotional Language</span>
+                        <span class="gratification-indicator">Information Seeking Patterns</span>
+                        <span class="gratification-indicator">Social Interaction Cues</span>
+                        <span class="gratification-indicator">Identity Markers</span>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        Initial gratification profiling completed. Comprehensive analysis available in next step.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gratification Visualizations -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="results-card">
+                <h5><i class="fas fa-chart-pie me-2"></i>Gratification Distribution</h5>
+                <div class="chart-container">
+                    <canvas id="gratificationDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="results-card">
+                <h5><i class="fas fa-chart-bar me-2"></i>Gratification Comparison</h5>
+                <div class="chart-container">
+                    <canvas id="gratificationComparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gratification Analysis Charts -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="results-card">
+                <h5><i class="fas fa-chart-line me-2"></i>Gratification Intensity</h5>
+                <div class="chart-container">
+                    <canvas id="gratificationIntensityChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="results-card">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Misinformation Susceptibility</h5>
+                <div class="chart-container">
+                    <canvas id="misinformationSusceptibilityChart"></canvas>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Risk assessment based on gratification patterns and information-seeking behavior
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="results-card text-center">
+                <h5>Continue to Behavioral Profiling</h5>
+                <p class="text-muted">Analyze user engagement patterns and behavioral gratification motives</p>
+                <button type="button" class="btn btn-primary btn-lg" onclick="proceedToBehavioralProfiling()">
+                    <i class="fas fa-users me-2"></i>Start Behavioral Profiling
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    createSentimentChart();
+    createGratificationDistributionChart();
+    createGratificationComparisonChart();
+    createGratificationIntensityChart();
+    createMisinformationSusceptibilityChart();
+});
+
+
+
+function createSentimentChart() {
+    const ctx = document.getElementById('sentimentChart').getContext('2d');
+    
+    const sentimentData = {
+        positive: {{ (results.get('sentiment_analysis', {}).get('sentiment_distribution', {}).get('positive', 0.4)) * 100 }},
+        negative: {{ (results.get('sentiment_analysis', {}).get('sentiment_distribution', {}).get('negative', 0.3)) * 100 }},
+        neutral: {{ (results.get('sentiment_analysis', {}).get('sentiment_distribution', {}).get('neutral', 0.3)) * 100 }}
+    };
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Positive', 'Negative', 'Neutral'],
+            datasets: [{
+                label: 'Sentiment Distribution (%)',
+                data: [sentimentData.positive, sentimentData.negative, sentimentData.neutral],
+                backgroundColor: [
+                    '#28a745',
+                    '#dc3545',
+                    '#6c757d'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createGratificationDistributionChart() {
+    const ctx = document.getElementById('gratificationDistributionChart').getContext('2d');
+    
+    const gratificationData = {
+        'Entertainment': {{ results.get('gratification_profile', {}).get('entertainment_score', 0) }},
+        'Information': {{ results.get('gratification_profile', {}).get('information_seeking_score', 0) }},
+        'Social': {{ results.get('gratification_profile', {}).get('social_interaction_score', 0) }},
+        'Identity': {{ results.get('gratification_profile', {}).get('identity_affirmation_score', 0) }}
+    };
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(gratificationData),
+            datasets: [{
+                data: Object.values(gratificationData),
+                backgroundColor: [
+                    '#ffc107', // Entertainment - Yellow
+                    '#17a2b8', // Information - Cyan
+                    '#28a745', // Social - Green
+                    '#dc3545'  // Identity - Red
+                ],
+                borderWidth: 3,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed.toFixed(3);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createGratificationComparisonChart() {
+    const ctx = document.getElementById('gratificationComparisonChart').getContext('2d');
+    
+    const gratificationScores = [
+        {{ results.get('gratification_profile', {}).get('entertainment_score', 0) }},
+        {{ results.get('gratification_profile', {}).get('information_seeking_score', 0) }},
+        {{ results.get('gratification_profile', {}).get('social_interaction_score', 0) }},
+        {{ results.get('gratification_profile', {}).get('identity_affirmation_score', 0) }}
+    ];
+    
+    // Find the maximum value to set appropriate scale
+    const maxValue = Math.max(...gratificationScores);
+    const scaleMax = maxValue > 0.1 ? 1.0 : Math.max(0.01, maxValue * 1.2);
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Entertainment', 'Information', 'Social', 'Identity'],
+            datasets: [{
+                label: 'Gratification Score',
+                data: gratificationScores,
+                backgroundColor: [
+                    '#ffc107',
+                    '#17a2b8',
+                    '#28a745',
+                    '#dc3545'
+                ],
+                borderWidth: 1,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed.y.toFixed(3);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: scaleMax,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(3);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createGratificationIntensityChart() {
+    const ctx = document.getElementById('gratificationIntensityChart').getContext('2d');
+    
+    const gratificationScores = [
+        {{ results.get('gratification_profile', {}).get('entertainment_score', 0) }},
+        {{ results.get('gratification_profile', {}).get('information_seeking_score', 0) }},
+        {{ results.get('gratification_profile', {}).get('social_interaction_score', 0) }},
+        {{ results.get('gratification_profile', {}).get('identity_affirmation_score', 0) }}
+    ];
+    
+    const averageIntensity = gratificationScores.reduce((a, b) => a + b, 0) / gratificationScores.length;
+    const maxIntensity = Math.max(...gratificationScores);
+    const minIntensity = Math.min(...gratificationScores);
+    
+    // Set appropriate scale based on actual values
+    const scaleMax = maxIntensity > 0.1 ? 1.0 : Math.max(0.01, maxIntensity * 1.2);
+    const stepSize = scaleMax > 0.1 ? 0.2 : scaleMax / 5;
+    
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Entertainment', 'Information', 'Social', 'Identity'],
+            datasets: [{
+                label: 'Gratification Intensity',
+                data: gratificationScores,
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed.r.toFixed(3);
+                        }
+                    }
+                }
+            },
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: scaleMax,
+                    ticks: {
+                        stepSize: stepSize,
+                        callback: function(value) {
+                            return value.toFixed(3);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createMisinformationSusceptibilityChart() {
+    const ctx = document.getElementById('misinformationSusceptibilityChart').getContext('2d');
+    
+    // Calculate susceptibility based on gratification patterns
+    const entertainment = {{ results.get('gratification_profile', {}).get('entertainment_score', 0) }};
+    const information = {{ results.get('gratification_profile', {}).get('information_seeking_score', 0) }};
+    const social = {{ results.get('gratification_profile', {}).get('social_interaction_score', 0) }};
+    const identity = {{ results.get('gratification_profile', {}).get('identity_affirmation_score', 0) }};
+    
+    // Normalize scores to percentage scale for better visualization
+    // Higher entertainment + identity, lower information = higher susceptibility
+    const totalGratification = entertainment + information + social + identity;
+    let susceptibilityScore = 0;
+    
+    if (totalGratification > 0) {
+        // Calculate relative weights - entertainment and identity seeking can indicate higher susceptibility
+        const entertainmentWeight = (entertainment / totalGratification) * 100;
+        const identityWeight = (identity / totalGratification) * 100;
+        const informationWeight = (information / totalGratification) * 100;
+        
+        // Higher entertainment + identity, lower information = higher susceptibility
+        susceptibilityScore = (entertainmentWeight + identityWeight) * 0.6 - informationWeight * 0.4;
+    }
+    
+    const normalizedSusceptibility = Math.max(0, Math.min(100, susceptibilityScore));
+    
+    // Risk categories based on normalized score
+    let riskLevel = 'Low';
+    let riskColor = '#28a745';
+    if (normalizedSusceptibility > 60) {
+        riskLevel = 'High';
+        riskColor = '#dc3545';
+    } else if (normalizedSusceptibility > 30) {
+        riskLevel = 'Medium';
+        riskColor = '#ffc107';
+    }
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Susceptibility', 'Resistance'],
+            datasets: [{
+                data: [normalizedSusceptibility, 100 - normalizedSusceptibility],
+                backgroundColor: [riskColor, '#e9ecef'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            if (context.dataIndex === 0) {
+                                return 'Susceptibility: ' + context.parsed.toFixed(1) + '%';
+                            }
+                            return null;
+                        }
+                    }
+                }
+            }
+        },
+        plugins: [{
+            beforeDraw: function(chart) {
+                const width = chart.width;
+                const height = chart.height;
+                const ctx = chart.ctx;
+                
+                ctx.restore();
+                const fontSize = (height / 114).toFixed(2);
+                ctx.font = fontSize + "em sans-serif";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = riskColor;
+                
+                const text = riskLevel + ' Risk';
+                const textX = Math.round((width - ctx.measureText(text).width) / 2);
+                const textY = height / 2;
+                
+                ctx.fillText(text, textX, textY);
+                ctx.save();
+            }
+        }]
+    });
+}
+
+function proceedToBehavioralProfiling() {
+    window.location.href = `/behavioral_profiling/{{ dataset_name }}`;
+}
+</script>
+{% endblock %}

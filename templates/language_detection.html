@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+
+{% block title %}Language Detection - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        margin: 40px auto;
+        padding: 40px;
+        max-width: 1000px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding: 0 20px;
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #6c757d;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+    }
+    .step.completed .step-number {
+        background: #28a745;
+    }
+    .step.active .step-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .config-container {
+        text-align: center;
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        margin: 30px 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .detection-option {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 15px;
+        padding: 20px;
+        margin: 15px 0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .detection-option:hover {
+        border-color: #667eea;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+    }
+    .detection-option.selected {
+        border-color: #667eea;
+        background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+    }
+    .dataset-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Progress Steps -->
+    <div class="progress-steps">
+        <div class="step completed">
+            <div class="step-number">1</div>
+            <small>Upload Dataset</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">2</div>
+            <small>Data Overview</small>
+        </div>
+        <div class="step active">
+            <div class="step-number">3</div>
+            <small>Language Detection</small>
+        </div>
+        <div class="step">
+            <div class="step-number">4</div>
+            <small>Content Analysis</small>
+        </div>
+        <div class="step">
+            <div class="step-number">5</div>
+            <small>Behavioral Profiling</small>
+        </div>
+        <div class="step">
+            <div class="step-number">6</div>
+            <small>Gratification Extraction</small>
+        </div>
+        <div class="step">
+            <div class="step-number">7</div>
+            <small>Model Training</small>
+        </div>
+        <div class="step">
+            <div class="step-number">8</div>
+            <small>Explainability</small>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <h1 class="display-4 text-primary">
+            <i class="fas fa-language me-3"></i>Language Detection
+        </h1>
+        <p class="lead text-muted">Configure language detection for your dataset</p>
+        
+        {% if dataset_info %}
+        <div class="dataset-info">
+            <h5><i class="fas fa-database me-2"></i>{{ dataset_name }}</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>{{ dataset_info.get('total_samples', 0) }}</strong><br>
+                    <small class="text-muted">Total Samples</small>
+                </div>
+                <div class="col-md-4">
+                    <strong>{{ dataset_info.get('features', 0) }}</strong><br>
+                    <small class="text-muted">Features</small>
+                </div>
+                <div class="col-md-4">
+                    <strong>{{ dataset_info.get('upload_time', 'N/A')[:10] if dataset_info.get('upload_time', 'N/A') != 'N/A' else 'N/A' }}</strong><br>
+                    <small class="text-muted">Upload Date</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Existing Results Section -->
+    {% if existing_results %}
+    <div class="config-container">
+        <div class="alert alert-success border-0 shadow-sm">
+            <div class="row align-items-center">
+                <div class="col-md-1 text-center">
+                    <i class="fas fa-check-circle text-success" style="font-size: 2.5rem;"></i>
+                </div>
+                <div class="col-md-8">
+                    <h5 class="alert-heading mb-2">
+                        <i class="fas fa-language me-2"></i>Language Detection Already Completed
+                    </h5>
+                    <p class="mb-1">
+                        <strong>{{ results_summary.languages_detected }}</strong> languages detected in 
+                        <strong>{{ results_summary.total_texts }}</strong> texts
+                    </p>
+                    <p class="mb-0">
+                        <strong>Dominant Language:</strong> {{ results_summary.dominant_language }}
+                        {% if results_summary.analysis_date != 'Unknown' %}
+                        | <strong>Analyzed:</strong> {{ results_summary.analysis_date[:10] }}
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-3 text-end">
+                    <a href="/language_detection_results/{{ dataset_name }}" class="btn btn-success btn-lg mb-2">
+                        <i class="fas fa-eye me-2"></i>View Results
+                    </a>
+                    <br>
+                    <button type="button" class="btn btn-outline-primary" onclick="showNewAnalysis()">
+                        <i class="fas fa-redo me-2"></i>Re-run Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Language Distribution Preview -->
+        {% if results_summary.language_distribution %}
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6><i class="fas fa-chart-pie me-2"></i>Language Distribution Preview</h6>
+                <div class="row">
+                    {% for language, count in results_summary.language_distribution.items() %}
+                    <div class="col-md-3 mb-2">
+                        <div class="card border-light">
+                            <div class="card-body text-center py-2">
+                                <h6 class="card-title mb-1">{{ language.title() }}</h6>
+                                <p class="card-text text-muted mb-0">{{ count }} texts</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Auto Language Detection -->
+    <div class="config-container" id="newAnalysisSection" {% if existing_results %}style="display: none;"{% endif %}>
+        <h3 class="mb-4">Automatic Language Detection</h3>
+        
+        <div class="text-center mb-4">
+            <i class="fas fa-language text-primary" style="font-size: 4rem;"></i>
+            <p class="lead mt-3">Analyzing languages in your processed dataset...</p>
+            <p class="text-muted">Using FastText for optimal detection of English and Kiswahili</p>
+        </div>
+
+        <!-- Embedding Strategy Info -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <h6 class="text-success">English Only</h6>
+                        <i class="fas fa-arrow-down text-success mb-2"></i>
+                        <p class="mb-0"><strong>BERT</strong></p>
+                        <small class="text-muted">English-optimized model</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <h6 class="text-info">Kiswahili Only</h6>
+                        <i class="fas fa-arrow-down text-info mb-2"></i>
+                        <p class="mb-0"><strong>XLM-RoBERTa</strong></p>
+                        <small class="text-muted">Multilingual model</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="text-warning">Mixed Languages</h6>
+                        <i class="fas fa-arrow-down text-warning mb-2"></i>
+                        <p class="mb-0"><strong>XLM-RoBERTa</strong></p>
+                        <small class="text-muted">English + Kiswahili</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Study Configuration -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-language me-2"></i>Language Detection Focus</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Clean Architecture:</strong> Language detection now focuses solely on identifying 
+                            languages and recommending appropriate transformers. Zero-shot classification and other 
+                            model training will be configured in the dedicated model configuration phase.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="text-center mt-4">
+            <button type="button" class="btn btn-primary btn-lg" onclick="startLanguageDetection()">
+                <i class="fas fa-play me-2"></i>Start Language Detection
+            </button>
+        </div>
+    </div>
+
+    <!-- Processing Status -->
+    <div class="config-container" id="processingStatus" style="display: none;">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Processing...</span>
+            </div>
+            <h5>Detecting Languages...</h5>
+            <div id="processingLog" class="mt-3 text-start">
+                <div class="bg-light p-3 rounded">
+                    <div id="logMessages">
+                        Initializing language detection...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function startLanguageDetection() {
+    // Show processing status
+    document.querySelector('.config-container').style.display = 'none';
+    document.getElementById('processingStatus').style.display = 'block';
+    
+    addLogMessage('Loading processed dataset...');
+    addLogMessage('Initializing language detection...');
+    addLogMessage('Analyzing text patterns and language indicators...');
+    
+    // Start language detection only
+    fetch('/process_language_detection', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            dataset_name: '{{ dataset_name }}'
+        })
+    })
+    .then(response => {
+        // Check if response is OK and is JSON
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            addLogMessage('Language detection completed successfully!');
+            addLogMessage(`Languages detected: ${Object.keys(data.results.language_distribution || {}).join(', ')}`);
+            addLogMessage(`Dominant language: ${data.results.dominant_language || 'Mixed'}`);
+            addLogMessage('Redirecting to results...');
+            
+            setTimeout(() => {
+                window.location.href = data.redirect || `/language_detection_results/{{ dataset_name }}`;
+            }, 2000);
+        } else {
+            addLogMessage(`Error: ${data.message || 'Unknown error occurred'}`);
+        }
+    })
+    .catch(error => {
+        console.error('Language detection error:', error);
+        addLogMessage(`Language Detection Failed: ${error.message}`);
+        addLogMessage('Please check the console for more details.');
+    });
+}
+
+function addLogMessage(message) {
+    const logMessages = document.getElementById('logMessages');
+    const timestamp = new Date().toLocaleTimeString();
+    logMessages.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+    logMessages.scrollTop = logMessages.scrollHeight;
+}
+
+function showNewAnalysis() {
+    // Hide existing results section and show new analysis section
+    const existingSection = document.querySelector('.config-container .alert-success').closest('.config-container');
+    const newAnalysisSection = document.getElementById('newAnalysisSection');
+    
+    if (existingSection) {
+        existingSection.style.display = 'none';
+    }
+    if (newAnalysisSection) {
+        newAnalysisSection.style.display = 'block';
+    }
+    
+    // Scroll to the new analysis section
+    newAnalysisSection.scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

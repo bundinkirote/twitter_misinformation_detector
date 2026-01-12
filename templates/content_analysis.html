@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block title %}Content Analysis - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        margin: 40px auto;
+        padding: 40px;
+        max-width: 1200px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding: 0 20px;
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #6c757d;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+    }
+    .step.completed .step-number {
+        background: #28a745;
+    }
+    .step.active .step-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .analysis-container {
+        text-align: center;
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        margin: 30px 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .analysis-feature {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 15px;
+        padding: 20px;
+        margin: 15px 0;
+        transition: all 0.3s ease;
+    }
+    .analysis-feature:hover {
+        border-color: #667eea;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+    }
+    .dataset-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+        border-left: 4px solid #667eea;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Progress Steps -->
+    <div class="progress-steps">
+        <div class="step completed">
+            <div class="step-number">1</div>
+            <small>Upload Dataset</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">2</div>
+            <small>Data Overview</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">3</div>
+            <small>Language Detection</small>
+        </div>
+        <div class="step active">
+            <div class="step-number">4</div>
+            <small>Content Analysis</small>
+        </div>
+        <div class="step">
+            <div class="step-number">5</div>
+            <small>Behavioral Profiling</small>
+        </div>
+        <div class="step">
+            <div class="step-number">6</div>
+            <small>Gratification Extraction</small>
+        </div>
+        <div class="step">
+            <div class="step-number">7</div>
+            <small>Model Training</small>
+        </div>
+        <div class="step">
+            <div class="step-number">8</div>
+            <small>Explainability</small>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <h1 class="display-4 text-primary">
+            <i class="fas fa-microscope me-3"></i>Content Analysis
+        </h1>
+        <p class="lead text-muted">Sentiment analysis and gratification profiling using language detection results</p>
+        
+        <div class="dataset-info">
+            <h5><i class="fas fa-database me-2"></i>Dataset: {{ dataset_name }}</h5>
+            <p class="mb-0">Building on language detection results for cultural sentiment analysis and initial gratification profiling</p>
+            {% if language_results %}
+            <div class="mt-2">
+                <small class="text-success">
+                    <i class="fas fa-check me-1"></i>Language detection completed: 
+                    {{ language_results.dominant_language or 'Mixed' }} dominant, 
+                    {{ language_results.total_samples or 0 }} samples analyzed
+                </small>
+            </div>
+            {% endif %}
+            {% if zero_shot_results %}
+            <div class="mt-1">
+                <small class="text-info">
+                    <i class="fas fa-flask me-1"></i>Zero-shot classification available for comparison study
+                </small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Existing Results Section -->
+    {% if results_summary %}
+    <div class="analysis-container">
+        <div class="alert alert-success border-0 shadow-sm">
+            <div class="row align-items-center">
+                <div class="col-md-1 text-center">
+                    <i class="fas fa-check-circle text-success" style="font-size: 2.5rem;"></i>
+                </div>
+                <div class="col-md-8">
+                    <h5 class="alert-heading mb-2">
+                        <i class="fas fa-microscope me-2"></i>Content Analysis Already Completed
+                    </h5>
+                    <p class="mb-1">
+                        <strong>{{ results_summary.total_texts_analyzed }}</strong> texts analyzed
+                        {% if results_summary.has_content_analysis and results_summary.has_sentiment_analysis %}
+                        | <strong>Both</strong> content analysis and sentiment analysis completed
+                        {% elif results_summary.has_content_analysis %}
+                        | <strong>Content analysis</strong> completed
+                        {% elif results_summary.has_sentiment_analysis %}
+                        | <strong>Sentiment analysis</strong> completed
+                        {% endif %}
+                    </p>
+                    <p class="mb-0">
+                        {% if results_summary.analysis_date != 'Unknown' %}
+                        <strong>Analyzed:</strong> {{ results_summary.analysis_date[:10] }}
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-3 text-end">
+                    <a href="/content_analysis_results/{{ dataset_name }}" class="btn btn-success btn-lg mb-2">
+                        <i class="fas fa-eye me-2"></i>View Results
+                    </a>
+                    <br>
+                    <button type="button" class="btn btn-outline-primary" onclick="showNewContentAnalysis()">
+                        <i class="fas fa-redo me-2"></i>Re-run Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sentiment Distribution Preview -->
+        {% if results_summary.sentiment_distribution %}
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6><i class="fas fa-chart-pie me-2"></i>Sentiment Distribution Preview</h6>
+                <div class="row">
+                    {% for sentiment, count in results_summary.sentiment_distribution.items() %}
+                    <div class="col-md-3 mb-2">
+                        <div class="card border-light">
+                            <div class="card-body text-center py-2">
+                                <h6 class="card-title mb-1">{{ sentiment.title() }}</h6>
+                                <p class="card-text text-muted mb-0">{{ count }} texts</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Content Analysis Features -->
+    <div class="analysis-container" id="newContentAnalysisSection" {% if results_summary %}style="display: none;"{% endif %}>
+        <h3 class="mb-4">Integrated Content Analysis Pipeline</h3>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="analysis-feature">
+                    <i class="fas fa-heart text-danger mb-3" style="font-size: 2rem;"></i>
+                    <h5>Cultural Sentiment Analysis</h5>
+                    <p class="text-muted">Language-adaptive emotional tone analysis with Kenyan context enhancement</p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-1"></i>Language-specific RoBERTa models</li>
+                        <li><i class="fas fa-check text-success me-1"></i>Kenyan political context weighting</li>
+                        <li><i class="fas fa-check text-success me-1"></i>High-emotion content detection</li>
+                        <li><i class="fas fa-check text-success me-1"></i>Cross-cultural sentiment adaptation</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="analysis-feature">
+                    <i class="fas fa-users text-warning mb-3" style="font-size: 2rem;"></i>
+                    <h5>Initial Gratification Profiling</h5>
+                    <p class="text-muted">Content gratification motive detection using UGT principles</p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-1"></i>Entertainment seeking indicators</li>
+                        <li><i class="fas fa-check text-success me-1"></i>Information acquisition patterns</li>
+                        <li><i class="fas fa-check text-success me-1"></i>Social connection motivations</li>
+                        <li><i class="fas fa-check text-success me-1"></i>Identity affirmation markers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Preview -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Analysis Output</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 text-center">
+                                <i class="fas fa-globe text-primary mb-2" style="font-size: 1.5rem;"></i>
+                                <h6>Language Distribution</h6>
+                                <small class="text-muted">Language patterns and confidence scores</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <i class="fas fa-thermometer-half text-info mb-2" style="font-size: 1.5rem;"></i>
+                                <h6>Sentiment Patterns</h6>
+                                <small class="text-muted">Emotional tone and intensity analysis</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <i class="fas fa-brain text-warning mb-2" style="font-size: 1.5rem;"></i>
+                                <h6>Gratification Motives</h6>
+                                <small class="text-muted">Initial UGT-based motive indicators</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <i class="fas fa-cogs text-success mb-2" style="font-size: 1.5rem;"></i>
+                                <h6>ML Features</h6>
+                                <small class="text-muted">Features for downstream analysis</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="text-center mt-4">
+            <button type="button" class="btn btn-primary btn-lg" onclick="startContentAnalysis()">
+                <i class="fas fa-play me-2"></i>Start Content Analysis
+            </button>
+        </div>
+    </div>
+
+    <!-- Processing Status -->
+    <div class="analysis-container" id="processingStatus" style="display: none;">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Processing...</span>
+            </div>
+            <h5>Analyzing Content...</h5>
+            <div id="processingLog" class="mt-3 text-start">
+                <div class="bg-light p-3 rounded">
+                    <div id="logMessages">
+                        Initializing content analysis pipeline...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function startContentAnalysis() {
+    // Show processing status
+    document.querySelector('.analysis-container').style.display = 'none';
+    document.getElementById('processingStatus').style.display = 'block';
+    
+    addLogMessage('Loading dataset for content analysis...');
+    addLogMessage('Initializing language detection models...');
+    addLogMessage('Loading sentiment analysis transformers...');
+    addLogMessage('Preparing gratification profiling algorithms...');
+    
+    fetch('/process_content_analysis', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            dataset_name: '{{ dataset_name }}'
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            addLogMessage('Language detection completed successfully!');
+            addLogMessage('Sentiment analysis completed with cultural context enhancement!');
+            addLogMessage('Gratification profiling generated initial motive indicators!');
+            addLogMessage('Content analysis pipeline completed successfully!');
+            addLogMessage('Redirecting to results...');
+            
+            setTimeout(() => {
+                window.location.href = data.redirect || `/content_analysis_results/{{ dataset_name }}`;
+            }, 2000);
+        } else {
+            addLogMessage(`Error: ${data.message || 'Unknown error occurred'}`);
+        }
+    })
+    .catch(error => {
+        console.error('Content analysis error:', error);
+        addLogMessage(`Content Analysis Failed: ${error.message}`);
+        addLogMessage('Please check the console for more details.');
+    });
+}
+
+function addLogMessage(message) {
+    const logMessages = document.getElementById('logMessages');
+    const timestamp = new Date().toLocaleTimeString();
+    logMessages.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+    logMessages.scrollTop = logMessages.scrollHeight;
+}
+
+function showNewContentAnalysis() {
+    // Hide existing results section and show new analysis section
+    const existingSection = document.querySelector('.analysis-container .alert-success').closest('.analysis-container');
+    const newAnalysisSection = document.getElementById('newContentAnalysisSection');
+    
+    if (existingSection) {
+        existingSection.style.display = 'none';
+    }
+    if (newAnalysisSection) {
+        newAnalysisSection.style.display = 'block';
+    }
+    
+    // Scroll to the new analysis section
+    newAnalysisSection.scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

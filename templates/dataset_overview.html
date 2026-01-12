@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}{{ dataset_name }} - Dataset Overview{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .dataset-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .action-card {
+        transition: transform 0.3s ease;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .action-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .metric-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        border-left: 4px solid #667eea;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    /* Make charts smaller */
+    #classDistributionChart, #dataQualityChart {
+        max-height: 300px !important;
+        height: 300px !important;
+    }
+    
+    .chart-card-body {
+        height: 350px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- Dataset Header -->
+    <div class="dataset-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-database me-3"></i>{{ dataset_name }}
+                </h1>
+                <p class="lead mb-0">Dataset Overview and Statistics</p>
+                <p class="mb-0 mt-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Comprehensive analysis and insights for your dataset
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group-vertical" role="group">
+                    <a href="{{ url_for('language_detection', dataset_name=dataset_name) }}" 
+                       class="btn btn-light btn-lg mb-2">
+                        <i class="fas fa-language me-2"></i>Language Detection
+                    </a>
+                    <a href="{{ url_for('predict', dataset_name=dataset_name) }}" 
+                       class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-search me-2"></i>Quick Predict
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'warning' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Dataset Statistics -->
+        {% if stats and 'error' not in stats %}
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-list-ol fa-2x text-primary mb-2"></i>
+                        <h4 class="card-title">{{ stats.total_samples }}</h4>
+                        <p class="card-text">Total Samples</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-columns fa-2x text-success mb-2"></i>
+                        <h4 class="card-title">{{ stats.features }}</h4>
+                        <p class="card-text">Features</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                        <h4 class="card-title">{{ "%.1f"|format(stats.misinformation_rate) }}%</h4>
+                        <p class="card-text">Misinformation Rate</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-question-circle fa-2x text-info mb-2"></i>
+                        <h4 class="card-title">3.34%</h4>
+                        <p class="card-text">Missing Values</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Class Distribution</h5>
+                    </div>
+                    <div class="card-body chart-card-body">
+                        <canvas id="classDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Data Quality</h5>
+                    </div>
+                    <div class="card-body chart-card-body">
+                        <canvas id="dataQualityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- AI-Generated Insights -->
+        {% include 'insights_component.html' %}
+
+        <!-- Dataset Info -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Dataset Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Name:</strong></td>
+                                <td>{{ dataset_info.name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status:</strong></td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if dataset_info.status == 'processed' else 'warning' }}">
+                                        {{ dataset_info.status|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% if dataset_info.created %}
+                            <tr>
+                                <td><strong>Created:</strong></td>
+                                <td>{{ dataset_info.created[:19]|replace('T', ' ') }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if dataset_info.last_updated %}
+                            <tr>
+                                <td><strong>Last Updated:</strong></td>
+                                <td>{{ dataset_info.last_updated[:19]|replace('T', ' ') }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Available Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <!-- Content Gratification Research Pipeline -->
+                            <div class="mb-3">
+                                <h6 class="text-primary mb-2">
+                                    <i class="fas fa-brain me-1"></i>Content Gratification Research Pipeline:
+                                </h6>
+                                
+                                <!-- Step 1: Language Detection -->
+                                <a href="{{ url_for('language_detection', dataset_name=dataset_name) }}" 
+                                   class="btn btn-outline-primary btn-sm mb-2 w-100">
+                                    <i class="fas fa-language me-2"></i>1. Language Detection
+                                    <small class="d-block">Multi-language detection + Optional Zero-Shot</small>
+                                </a>
+                                
+                                <!-- Step 2: Content Analysis -->
+                                <a href="{{ url_for('content_analysis', dataset_name=dataset_name) }}" 
+                                   class="btn btn-outline-info btn-sm mb-2 w-100">
+                                    <i class="fas fa-microscope me-2"></i>2. Content Analysis
+                                    <small class="d-block">Sentiment + Initial Gratification Profiling</small>
+                                </a>
+                                
+                                <!-- Step 3: Behavioral Profiling -->
+                                <a href="{{ url_for('behavioral_profiling', dataset_name=dataset_name) }}" 
+                                   class="btn btn-outline-warning btn-sm mb-2 w-100">
+                                    <i class="fas fa-users me-2"></i>3. Behavioral Profiling
+                                    <small class="d-block">RAT/RCT + UGT-based Analysis</small>
+                                </a>
+                                
+                                <!-- Step 4: Feature Engineering -->
+                                <a href="{{ url_for('feature_extraction', dataset_name=dataset_name) }}" 
+                                   class="btn btn-outline-success btn-sm mb-2 w-100">
+                                    <i class="fas fa-cogs me-2"></i>4. Feature Engineering
+                                    <small class="d-block">Traditional + Gratification + Theoretical Features</small>
+                                </a>
+                                
+                                <!-- Step 5: Model Training -->
+                                <a href="{{ url_for('model_training', dataset_name=dataset_name) }}" 
+                                   class="btn btn-outline-danger btn-sm mb-2 w-100">
+                                    <i class="fas fa-robot me-2"></i>5. Model Training
+                                    <small class="d-block">Enhanced Feature-Based Models</small>
+                                </a>
+                                
+                                <!-- Step 6: Explainability -->
+                                <a href="{{ url_for('explainability_analysis', dataset_name=dataset_name) }}" 
+                                   class="btn btn-outline-dark btn-sm mb-2 w-100">
+                                    <i class="fas fa-lightbulb me-2"></i>6. Explainability Analysis
+                                    <small class="d-block">SHAP + Feature Importance Insights</small>
+                                </a>
+                            </div>
+                            
+                            <hr class="my-3">
+                            
+                            <!-- Traditional Methods (for comparison) -->
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-2">
+                                    <i class="fas fa-flask me-1"></i>Traditional Methods (Comparison):
+                                </h6>
+                                
+                                {% if stats and stats.needs_zero_shot %}
+                                <a href="{{ url_for('zero_shot_labeling_page', dataset_name=dataset_name) }}" 
+                                   class="btn btn-outline-secondary btn-sm mb-1 w-100">
+                                    <i class="fas fa-tags me-2"></i>Zero-Shot Classification
+                                </a>
+                                {% endif %}
+                                
+                                <a href="{{ url_for('traditional_features', dataset_name=dataset_name) }}" 
+                                   class="btn btn-outline-secondary btn-sm mb-1 w-100">
+                                    <i class="fas fa-cogs me-2"></i>Traditional Feature Engineering (Basic)
+                                </a>
+                                
+                                <a href="{{ url_for('model_configuration', dataset_name=dataset_name) }}" 
+                                   class="btn btn-outline-secondary btn-sm mb-1 w-100">
+                                    <i class="fas fa-robot me-2"></i>Traditional Model Training
+                                </a>
+                            </div>
+                            
+                            <hr class="my-3">
+                            
+                            <!-- Quick Start -->
+                            <a href="{{ url_for('language_detection', dataset_name=dataset_name) }}" 
+                               class="btn btn-primary btn-lg">
+                                <i class="fas fa-language me-2"></i>Start Research Pipeline
+                            </a>
+                            
+                            <small class="text-muted text-center d-block mt-2">
+                                Begin with language detection, then progress through gratification analysis
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column Information -->
+        {% if stats and 'columns' in stats %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Dataset Columns ({{ stats.columns|length }})</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for column in stats.columns %}
+                            <div class="col-md-4 mb-2">
+                                <span class="badge bg-light text-dark">{{ column }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    
+    {% if stats and 'error' not in stats %}
+    <script>
+        // Class Distribution Chart
+        const classCtx = document.getElementById('classDistributionChart').getContext('2d');
+        const legitimateCount = {{ stats.total_samples - (stats.misinformation_rate * stats.total_samples / 100)|int }};
+        const misinformationCount = {{ (stats.misinformation_rate * stats.total_samples / 100)|int }};
+        
+        new Chart(classCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Legitimate', 'Misinformation'],
+                datasets: [{
+                    data: [legitimateCount, misinformationCount],
+                    backgroundColor: ['#28a745', '#dc3545'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10
+                        }
+                    }
+                }
+            }
+        });
+
+        // Data Quality Chart
+        const qualityCtx = document.getElementById('dataQualityChart').getContext('2d');
+        const completeValues = {{ stats.total_samples * stats.features - stats.missing_values }};
+        const missingValues = {{ stats.missing_values }};
+        
+        new Chart(qualityCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Complete', 'Missing'],
+                datasets: [{
+                    label: 'Values',
+                    data: [completeValues, missingValues],
+                    backgroundColor: ['#17a2b8', '#ffc107'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            maxTicksLimit: 6
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+{% endblock %}

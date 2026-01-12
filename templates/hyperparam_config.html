@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperparameter Configuration - ML Pipeline</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin: 40px auto;
+            padding: 40px;
+            max-width: 1200px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .progress-step {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #6c757d;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+        .step.active .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .step.completed .step-number {
+            background: #28a745;
+        }
+        .step::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: #dee2e6;
+            z-index: -1;
+        }
+        .step:last-child::after {
+            display: none;
+        }
+        .model-card {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 15px 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .model-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+        .model-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+        .param-slider {
+            margin: 15px 0;
+        }
+        .param-value {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 500;
+        }
+        .config-summary {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .algorithm-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Progress Steps -->
+        <div class="progress-step">
+            <div class="step completed">
+                <div class="step-number">1</div>
+                <small>Upload Dataset</small>
+            </div>
+            <div class="step completed">
+                <div class="step-number">2</div>
+                <small>Language Detection</small>
+            </div>
+            <div class="step completed">
+                <div class="step-number">3</div>
+                <small>Feature Extraction</small>
+            </div>
+            <div class="step completed">
+                <div class="step-number">4</div>
+                <small>Sentiment Analysis</small>
+            </div>
+            <div class="step completed">
+                <div class="step-number">5</div>
+                <small>Feature Engineering</small>
+            </div>
+            <div class="step active">
+                <div class="step-number">6</div>
+                <small>Model Training</small>
+            </div>
+            <div class="step">
+                <div class="step-number">7</div>
+                <small>Results</small>
+            </div>
+        </div>
+
+        <div class="text-center mb-4">
+            <h1 class="display-4 text-primary">
+                <i class="fas fa-sliders-h me-3"></i>Hyperparameter Optimization
+            </h1>
+            <p class="lead text-muted">Fine-tune your baseline models for optimal performance</p>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Performance Optimization:</strong> This will systematically search for the best hyperparameters to improve your baseline model performance using Grid Search Cross-Validation.
+            </div>
+        </div>
+
+        <!-- Dataset Summary -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="config-summary">
+                    <h5><i class="fas fa-database me-2"></i>Dataset: <span id="datasetName">{{ dataset_name }}</span></h5>
+                    <div class="row mt-3">
+                        <div class="col-md-2 text-center">
+                            <div class="fw-bold text-primary" id="totalFeatures">Loading...</div>
+                            <small class="text-muted">Features</small>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <div class="fw-bold text-success" id="trainSamples">Loading...</div>
+                            <small class="text-muted">Training</small>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <div class="fw-bold text-warning" id="testSamples">Loading...</div>
+                            <small class="text-muted">Testing</small>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="fw-bold text-info" id="featureTypes">Loading...</div>
+                            <small class="text-muted">Feature Types</small>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="fw-bold text-secondary" id="hasLabels">Loading...</div>
+                            <small class="text-muted">Supervised</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Selection -->
+        <div class="row">
+            <div class="col-md-12">
+                <h4><i class="fas fa-brain me-2"></i>Model Selection</h4>
+                <p class="text-muted mb-4">Choose the machine learning algorithms you want to train and compare</p>
+            </div>
+
+            <!-- Logistic Regression -->
+            <div class="col-md-6">
+                <div class="model-card selected" id="lrCard" onclick="toggleModel('lr')">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="useLR" checked>
+                            <label class="form-check-label fw-bold" for="useLR">
+                                Logistic Regression
+                            </label>
+                        </div>
+                        <span class="algorithm-badge">Linear</span>
+                    </div>
+                    <p class="text-muted mb-3">Fast, interpretable linear classifier excellent for text classification</p>
+                    
+                    <div class="param-slider">
+                        <label class="form-label">Regularization Strength (C): <span class="param-value" id="lrCValue">10.0</span></label>
+                        <input type="range" class="form-range" id="lrC" min="0.01" max="100" step="0.01" value="10.0" 
+                               oninput="updateParamValue('lrCValue', this.value)">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Penalty Type</label>
+                        <select class="form-select" id="lrPenalty">
+                            <option value="l2" selected>L2 (Ridge)</option>
+                            <option value="l1">L1 (Lasso)</option>
+                            <option value="elasticnet">Elastic Net</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Naive Bayes -->
+            <div class="col-md-6">
+                <div class="model-card selected" id="nbCard" onclick="toggleModel('nb')">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="useNB" checked>
+                            <label class="form-check-label fw-bold" for="useNB">
+                                Naive Bayes
+                            </label>
+                        </div>
+                        <span class="algorithm-badge">Probabilistic</span>
+                    </div>
+                    <p class="text-muted mb-3">Fast probabilistic classifier that works well with text data and sparse features</p>
+                    
+                    <div class="param-slider">
+                        <label class="form-label">Variance Smoothing: <span class="param-value" id="nbVarValue">1e-9</span></label>
+                        <input type="range" class="form-range" id="nbVar" min="1e-12" max="1e-5" step="1e-12" value="1e-9"
+                               oninput="updateParamValue('nbVarValue', parseFloat(this.value).toExponential(0))">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Controls smoothing for variance calculation. Lower values = less smoothing.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gradient Boosting -->
+            <div class="col-md-6">
+                <div class="model-card selected" id="gbCard" onclick="toggleModel('gb')">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="useGB" checked>
+                            <label class="form-check-label fw-bold" for="useGB">
+                                Gradient Boosting
+                            </label>
+                        </div>
+                        <span class="algorithm-badge">Boosting</span>
+                    </div>
+                    <p class="text-muted mb-3">Powerful sequential ensemble for high accuracy</p>
+                    
+                    <div class="param-slider">
+                        <label class="form-label">Learning Rate: <span class="param-value" id="gbLrValue">0.1</span></label>
+                        <input type="range" class="form-range" id="gbLr" min="0.01" max="0.3" step="0.01" value="0.1"
+                               oninput="updateParamValue('gbLrValue', this.value)">
+                    </div>
+                    
+                    <div class="param-slider">
+                        <label class="form-label">Number of Estimators: <span class="param-value" id="gbNValue">150</span></label>
+                        <input type="range" class="form-range" id="gbN" min="50" max="300" step="50" value="150"
+                               oninput="updateParamValue('gbNValue', this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SVM -->
+            <div class="col-md-6">
+                <div class="model-card" id="svmCard" onclick="toggleModel('svm')">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="useSVM">
+                            <label class="form-check-label fw-bold" for="useSVM">
+                                Support Vector Machine
+                            </label>
+                        </div>
+                        <span class="algorithm-badge">Kernel</span>
+                    </div>
+                    <p class="text-muted mb-3">Powerful margin-based classifier with kernel tricks</p>
+                    
+                    <div class="param-slider">
+                        <label class="form-label">Regularization (C): <span class="param-value" id="svmCValue">1.0</span></label>
+                        <input type="range" class="form-range" id="svmC" min="0.1" max="10" step="0.1" value="1.0"
+                               oninput="updateParamValue('svmCValue', this.value)">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Kernel Type</label>
+                        <select class="form-select" id="svmKernel">
+                            <option value="rbf" selected>RBF (Gaussian)</option>
+                            <option value="linear">Linear</option>
+                            <option value="poly">Polynomial</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Neural Network -->
+            <div class="col-md-6">
+                <div class="model-card selected" id="nnCard" onclick="toggleModel('nn')">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="useNN" checked>
+                            <label class="form-check-label fw-bold" for="useNN">
+                                Neural Network
+                            </label>
+                        </div>
+                        <span class="algorithm-badge">Deep Learning</span>
+                    </div>
+                    <p class="text-muted mb-3">Multi-layer perceptron that learns complex non-linear patterns</p>
+                    
+                    <div class="param-slider">
+                        <label class="form-label">Hidden Layer Size: <span class="param-value" id="nnHiddenValue">100</span></label>
+                        <input type="range" class="form-range" id="nnHidden" min="50" max="200" step="50" value="100"
+                               oninput="updateParamValue('nnHiddenValue', this.value)">
+                    </div>
+                    
+                    <div class="param-slider">
+                        <label class="form-label">Learning Rate (Alpha): <span class="param-value" id="nnAlphaValue">0.001</span></label>
+                        <input type="range" class="form-range" id="nnAlpha" min="0.0001" max="0.01" step="0.0001" value="0.001"
+                               oninput="updateParamValue('nnAlphaValue', this.value)">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Activation Function</label>
+                        <select class="form-select" id="nnActivation">
+                            <option value="relu" selected>ReLU</option>
+                            <option value="tanh">Tanh</option>
+                            <option value="logistic">Logistic</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Random Forest -->
+            <div class="col-md-6">
+                <div class="model-card selected" id="rfCard" onclick="toggleModel('rf')">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="useRF" checked>
+                            <label class="form-check-label fw-bold" for="useRF">
+                                Random Forest
+                            </label>
+                        </div>
+                        <span class="algorithm-badge">Ensemble</span>
+                    </div>
+                    <p class="text-muted mb-3">Robust ensemble method that handles overfitting well</p>
+                    
+                    <div class="param-slider">
+                        <label class="form-label">Number of Trees: <span class="param-value" id="rfNValue">200</span></label>
+                        <input type="range" class="form-range" id="rfN" min="50" max="500" step="50" value="200"
+                               oninput="updateParamValue('rfNValue', this.value)">
+                    </div>
+                    
+                    <div class="param-slider">
+                        <label class="form-label">Max Depth: <span class="param-value" id="rfDepthValue">10</span></label>
+                        <input type="range" class="form-range" id="rfDepth" min="3" max="20" step="1" value="10"
+                               oninput="updateParamValue('rfDepthValue', this.value)">
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+
+        <!-- Training Configuration -->
+        <div class="row mt-5">
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog me-2"></i>Training Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Cross-Validation Folds</label>
+                                    <select class="form-select" id="cvFolds">
+                                        <option value="3">3-Fold</option>
+                                        <option value="5" selected>5-Fold</option>
+                                        <option value="10">10-Fold</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Scoring Metric</label>
+                                    <select class="form-select" id="scoringMetric">
+                                        <option value="accuracy">Accuracy</option>
+                                        <option value="f1" selected>F1-Score</option>
+                                        <option value="precision">Precision</option>
+                                        <option value="recall">Recall</option>
+                                        <option value="roc_auc">ROC AUC</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="useGridSearch" checked>
+                                    <label class="form-check-label" for="useGridSearch">
+                                        Enable Grid Search CV
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="saveBestModel" checked>
+                                    <label class="form-check-label" for="saveBestModel">
+                                        Save Best Model for Production
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableSHAP" checked>
+                            <label class="form-check-label" for="enableSHAP">
+                                Generate SHAP Explainability Analysis
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header">
+                        <h5><i class="fas fa-clock me-2"></i>Estimated Time</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h2 class="text-primary" id="estimatedTime">~15 min</h2>
+                        <p class="text-muted mb-0">Based on selected models and dataset size</p>
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Time varies based on feature count and model complexity
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-5">
+            <button type="button" class="btn btn-outline-secondary me-3" onclick="goBack()">
+                <i class="fas fa-arrow-left me-2"></i>Back to Training Results
+            </button>
+            <button type="button" class="btn btn-primary btn-lg" id="startTrainingBtn" onclick="startTraining()">
+                <i class="fas fa-sliders-h me-2"></i>Start Hyperparameter Optimization
+            </button>
+        </div>
+
+        <!-- Selected Configuration Summary -->
+        <div class="card border-0 shadow-sm mt-4" id="configSummary" style="display: none;">
+            <div class="card-header">
+                <h5><i class="fas fa-list me-2"></i>Configuration Summary</h5>
+            </div>
+            <div class="card-body">
+                <div id="summaryContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let datasetName = "{{ dataset_name }}";
+        let datasetInfo = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDatasetInfo();
+            updateEstimatedTime();
+            
+            // Add event listeners for real-time updates
+            document.addEventListener('change', updateEstimatedTime);
+            document.addEventListener('input', updateEstimatedTime);
+        });
+
+        async function loadDatasetInfo() {
+            try {
+                const response = await fetch(`/api/dataset_info/${datasetName}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    datasetInfo = result.data;
+                    displayDatasetInfo();
+                } else {
+                    throw new Error(result.error || 'Failed to load dataset info');
+                }
+            } catch (error) {
+                console.error('Error loading dataset info:', error);
+            }
+        }
+
+        function displayDatasetInfo() {
+            document.getElementById('totalFeatures').textContent = datasetInfo.total_features || 0;
+            document.getElementById('trainSamples').textContent = datasetInfo.train_samples || 0;
+            document.getElementById('testSamples').textContent = datasetInfo.test_samples || 0;
+            document.getElementById('featureTypes').textContent = Object.keys(datasetInfo.feature_types || {}).length;
+            document.getElementById('hasLabels').textContent = datasetInfo.has_labels ? 'Yes' : 'No';
+        }
+
+        function toggleModel(modelType) {
+            const card = document.getElementById(modelType + 'Card');
+            let checkboxId;
+            
+            // Handle different checkbox ID patterns
+            switch(modelType) {
+                case 'lr': checkboxId = 'useLR'; break;
+                case 'nb': checkboxId = 'useNB'; break;
+                case 'gb': checkboxId = 'useGB'; break;
+                case 'svm': checkboxId = 'useSVM'; break;
+                case 'nn': checkboxId = 'useNN'; break;
+                case 'rf': checkboxId = 'useRF'; break;
+                default: checkboxId = 'use' + modelType.toUpperCase();
+            }
+            
+            const checkbox = document.getElementById(checkboxId);
+            
+            card.classList.toggle('selected');
+            checkbox.checked = card.classList.contains('selected');
+            
+            updateEstimatedTime();
+            updateConfigSummary();
+        }
+
+        function updateParamValue(elementId, value) {
+            document.getElementById(elementId).textContent = value;
+        }
+
+        function updateEstimatedTime() {
+            const selectedModels = getSelectedModels().length;
+            const useGridSearch = document.getElementById('useGridSearch').checked;
+            const cvFolds = parseInt(document.getElementById('cvFolds').value);
+            const samples = datasetInfo.train_samples || 1000;
+            
+            // Rough estimation based on model complexity and dataset size
+            let baseTime = selectedModels * 2; // 2 minutes per model
+            if (useGridSearch) baseTime *= 3; // Grid search multiplier
+            baseTime *= Math.max(1, cvFolds / 5); // CV multiplier
+            baseTime *= Math.max(1, samples / 1000); // Sample size multiplier
+            
+            document.getElementById('estimatedTime').textContent = `~${Math.ceil(baseTime)} min`;
+        }
+
+        function getSelectedModels() {
+            const models = [];
+            if (document.getElementById('useLR').checked) models.push('lr');
+            if (document.getElementById('useNB').checked) models.push('nb');
+            if (document.getElementById('useGB').checked) models.push('gb');
+            if (document.getElementById('useSVM').checked) models.push('svm');
+            if (document.getElementById('useNN').checked) models.push('nn');
+            if (document.getElementById('useRF').checked) models.push('rf');
+            return models;
+        }
+
+        function updateConfigSummary() {
+            const selectedModels = getSelectedModels();
+            
+            if (selectedModels.length > 0) {
+                document.getElementById('configSummary').style.display = 'block';
+                
+                const summaryHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Selected Models (${selectedModels.length})</h6>
+                            <ul class="list-unstyled">
+                                ${selectedModels.includes('lr') ? '<li><i class="fas fa-check text-success me-2"></i>Logistic Regression</li>' : ''}
+                                ${selectedModels.includes('nb') ? '<li><i class="fas fa-check text-success me-2"></i>Naive Bayes</li>' : ''}
+                                ${selectedModels.includes('gb') ? '<li><i class="fas fa-check text-success me-2"></i>Gradient Boosting</li>' : ''}
+                                ${selectedModels.includes('svm') ? '<li><i class="fas fa-check text-success me-2"></i>Support Vector Machine</li>' : ''}
+                                ${selectedModels.includes('nn') ? '<li><i class="fas fa-check text-success me-2"></i>Neural Network</li>' : ''}
+                                ${selectedModels.includes('rf') ? '<li><i class="fas fa-check text-success me-2"></i>Random Forest</li>' : ''}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Training Configuration</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-cog text-primary me-2"></i>${document.getElementById('cvFolds').value}-Fold Cross-Validation</li>
+                                <li><i class="fas fa-bullseye text-primary me-2"></i>${document.getElementById('scoringMetric').value.toUpperCase()} Scoring</li>
+                                <li><i class="fas fa-search text-primary me-2"></i>Grid Search: ${document.getElementById('useGridSearch').checked ? 'Enabled' : 'Disabled'}</li>
+                                <li><i class="fas fa-lightbulb text-primary me-2"></i>SHAP Analysis: ${document.getElementById('enableSHAP').checked ? 'Enabled' : 'Disabled'}</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('summaryContent').innerHTML = summaryHTML;
+            } else {
+                document.getElementById('configSummary').style.display = 'none';
+            }
+        }
+
+        async function startTraining() {
+            const selectedModels = getSelectedModels();
+            
+            if (selectedModels.length === 0) {
+                alert('Please select at least one model to train');
+                return;
+            }
+
+            // Collect configuration
+            const config = {
+                models: selectedModels,
+                logistic_regression: {
+                    C: parseFloat(document.getElementById('lrC').value),
+                    penalty: document.getElementById('lrPenalty').value
+                },
+                naive_bayes: {
+                    var_smoothing: parseFloat(document.getElementById('nbVar').value)
+                },
+                gradient_boosting: {
+                    learning_rate: parseFloat(document.getElementById('gbLr').value),
+                    n_estimators: parseInt(document.getElementById('gbN').value)
+                },
+                svm: {
+                    C: parseFloat(document.getElementById('svmC').value),
+                    kernel: document.getElementById('svmKernel').value
+                },
+                neural_network: {
+                    hidden_layer_sizes: parseInt(document.getElementById('nnHidden').value),
+                    alpha: parseFloat(document.getElementById('nnAlpha').value),
+                    activation: document.getElementById('nnActivation').value
+                },
+                random_forest: {
+                    n_estimators: parseInt(document.getElementById('rfN').value),
+                    max_depth: parseInt(document.getElementById('rfDepth').value)
+                },
+                cv_folds: parseInt(document.getElementById('cvFolds').value),
+                scoring: document.getElementById('scoringMetric').value,
+                use_grid_search: document.getElementById('useGridSearch').checked,
+                save_best_model: document.getElementById('saveBestModel').checked,
+                enable_shap: document.getElementById('enableSHAP').checked
+            };
+
+            // Show loading state
+            const startBtn = document.getElementById('startTrainingBtn');
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Starting Hyperparameter Optimization...';
+
+            // Send configuration to backend
+            fetch('/start_hyperparameter_optimization', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    dataset_name: datasetName,
+                    config: config
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Save configuration to localStorage for the results page
+                    localStorage.setItem('trainingConfig', JSON.stringify(config));
+                    
+                    // Redirect to results page
+                    window.location.href = data.redirect_url;
+                } else {
+                    alert('Error: ' + data.error);
+                    startBtn.disabled = false;
+                    startBtn.innerHTML = '<i class="fas fa-sliders-h me-2"></i>Start Hyperparameter Optimization';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while starting optimization');
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<i class="fas fa-sliders-h me-2"></i>Start Hyperparameter Optimization';
+            });
+        }
+
+        function goBack() {
+            window.location.href = `/training_results/${datasetName}`;
+        }
+
+        // Initialize configuration summary
+        updateConfigSummary();
+    </script>
+</body>
+</html>

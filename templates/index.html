@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Misinformation Detection System - Home{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: #ffffff;
+        padding: 60px 0;
+        border-bottom: 4px solid #3498db;
+        position: relative;
+    }
+    
+    .hero-section::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 3px;
+        background: #e74c3c;
+    }
+    
+    .hero-title {
+        font-size: 2.8rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .hero-subtitle {
+        font-size: 1.3rem;
+        color: #34495e;
+        margin-bottom: 2.5rem;
+        line-height: 1.7;
+        font-weight: 400;
+    }
+    
+    .section-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 3rem;
+        text-align: center;
+        position: relative;
+    }
+    
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: #3498db;
+    }
+    
+    .capability-card {
+        background: #ffffff;
+        border: 2px solid #ecf0f1;
+        border-radius: 12px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        transition: all 0.3s ease;
+        border-left: 5px solid #3498db;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    .capability-card:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        transform: translateY(-5px);
+        border-left-color: #e74c3c;
+        border-color: #3498db;
+        background: #f8f9fa;
+    }
+    
+    .capability-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+    }
+    
+    .process-step {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        border-left: 5px solid #27ae60;
+        border: 2px solid #dee2e6;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+    
+    .process-step:hover {
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        transform: translateY(-3px);
+        border-left-color: #e74c3c;
+        background: #ffffff;
+        border-color: #27ae60;
+    }
+    
+    .step-number {
+        background: #27ae60;
+        color: white;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        border: 3px solid #ffffff;
+    }
+    
+    .tech-stack {
+        background: #ecf0f1;
+        padding: 4rem 0;
+        margin-top: 4rem;
+        border-top: 4px solid #3498db;
+        border-bottom: 4px solid #e74c3c;
+    }
+    
+    .tech-item {
+        text-align: center;
+        padding: 2rem 1.5rem;
+        background: #ffffff;
+        border-radius: 10px;
+        margin: 0.5rem;
+        border: 2px solid #bdc3c7;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    }
+    
+    .tech-item:hover {
+        background: #3498db;
+        color: white;
+        transform: translateY(-5px);
+        box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+        border-color: #2980b9;
+    }
+    
+    .tech-item:hover .tech-name {
+        color: white;
+    }
+    
+    .tech-item:hover .text-muted {
+        color: rgba(255,255,255,0.9) !important;
+    }
+    
+    .tech-name {
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+    }
+    
+    .cta-section {
+        background: #2c3e50;
+        color: white;
+        padding: 5rem 0;
+        margin-top: 4rem;
+        text-align: center;
+        border-top: 5px solid #3498db;
+        position: relative;
+    }
+    
+    .cta-section h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-custom {
+        background: #3498db;
+        border: 2px solid #3498db;
+        padding: 15px 35px;
+        border-radius: 8px;
+        font-weight: 700;
+        text-decoration: none;
+        color: white;
+        display: inline-block;
+        margin: 0.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        font-size: 1.1rem;
+    }
+    
+    .btn-custom:hover {
+        background: #2980b9;
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
+        border-color: #2980b9;
+    }
+    
+    .btn-outline-custom {
+        border: 3px solid #e74c3c;
+        background: #e74c3c;
+        color: white;
+        font-weight: 700;
+    }
+    
+    .btn-outline-custom:hover {
+        background: #c0392b;
+        color: white;
+        border-color: #c0392b;
+        box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+    }
+    
+    .capability-card p, .process-step p {
+        color: #5d6d7e;
+        line-height: 1.6;
+        font-size: 1rem;
+    }
+    
+    .process-step h4 {
+        color: #2c3e50;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        font-size: 1.3rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h1 class="hero-title">AI-Powered Misinformation Detection System</h1>
+                <p class="hero-subtitle">
+                    An advanced machine learning platform that analyzes social media content to identify misinformation using cutting-edge natural language processing, behavioral analysis, and theoretical frameworks. Built specifically for political content analysis with multi-language support.
+                </p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('upload_form') }}" class="btn-custom">Start Training</a>
+                    <a href="{{ url_for('predict') }}" class="btn-custom btn-outline-custom">Live Tweet Analysis</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- System Capabilities -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="section-title">System Capabilities</h2>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="capability-card">
+                    <h3 class="capability-title">Multi-Algorithm Analysis</h3>
+                    <p>Employs multiple machine learning algorithms including Random Forest, SVM, Logistic Regression, Gradient Boosting, and Neural Networks to ensure robust classification with ensemble learning capabilities.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="capability-card">
+                    <h3 class="capability-title">Advanced Feature Engineering</h3>
+                    <p>Combines traditional NLP features (TF-IDF, N-grams) with behavioral patterns, sentiment analysis, readability scores, and theoretical framework-based features for comprehensive content analysis.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="capability-card">
+                    <h3 class="capability-title">Multi-Language Support</h3>
+                    <p>Supports English and Swahili text analysis with automatic language detection, enabling analysis of diverse social media content from different linguistic communities.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="capability-card">
+                    <h3 class="capability-title">Explainable AI</h3>
+                    <p>Provides transparent predictions with SHAP (SHapley Additive exPlanations) values, showing which features contributed most to the classification decision for interpretable results.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="capability-card">
+                    <h3 class="capability-title">Real-time Analysis</h3>
+                    <p>Performs instant content analysis with confidence scores, probability distributions, and detailed explanations for immediate misinformation detection and response.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="capability-card">
+                    <h3 class="capability-title">Comprehensive Evaluation</h3>
+                    <p>Provides detailed performance metrics including accuracy, precision, recall, F1-score, ROC curves, and confusion matrices with cross-validation for reliable model assessment.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Process Flow -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="section-title">How It Works</h2>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="process-step">
+                    <div class="step-number">1</div>
+                    <h4>Data Upload & Preprocessing</h4>
+                    <p>Upload your labeled dataset (CSV format with text and labels). The system automatically cleans data, removes duplicates, handles missing values, and preprocesses text for optimal model training.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="process-step">
+                    <div class="step-number">2</div>
+                    <h4>Language Detection & Analysis</h4>
+                    <p>Automatically detects content language (English/Swahili), performs sentiment analysis, and applies language-specific preprocessing techniques for improved accuracy.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="process-step">
+                    <div class="step-number">3</div>
+                    <h4>Feature Extraction</h4>
+                    <p>Extracts comprehensive features including textual patterns, behavioral indicators, readability metrics, emotional markers, and theoretical framework-based attributes.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="process-step">
+                    <div class="step-number">4</div>
+                    <h4>Model Training & Optimization</h4>
+                    <p>Trains multiple ML algorithms with hyperparameter tuning, cross-validation, and ensemble methods to achieve optimal performance with automatic model selection.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="process-step">
+                    <div class="step-number">5</div>
+                    <h4>Prediction & Explanation</h4>
+                    <p>Analyzes new content with trained models, providing classification results, confidence scores, and detailed explanations showing which features influenced the decision.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="process-step">
+                    <div class="step-number">6</div>
+                    <h4>Performance Monitoring</h4>
+                    <p>Continuously monitors model performance with comprehensive metrics, visualizations, and insights to ensure reliable misinformation detection capabilities.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Technology Stack -->
+<section class="tech-stack">
+    <div class="container">
+        <h2 class="section-title">Built With Advanced Technologies</h2>
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="tech-item">
+                    <div class="tech-name">Machine Learning</div>
+                    <p class="small text-muted">Scikit-learn, TensorFlow, XGBoost</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="tech-item">
+                    <div class="tech-name">Natural Language Processing</div>
+                    <p class="small text-muted">NLTK, spaCy, Transformers</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="tech-item">
+                    <div class="tech-name">Explainable AI</div>
+                    <p class="small text-muted">SHAP, LIME, Feature Importance</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="tech-item">
+                    <div class="tech-name">Web Framework</div>
+                    <p class="small text-muted">Flask, Bootstrap, JavaScript</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="tech-item">
+                    <div class="tech-name">Data Processing</div>
+                    <p class="small text-muted">Pandas, NumPy, Matplotlib</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="tech-item">
+                    <div class="tech-name">Language Models</div>
+                    <p class="small text-muted">BERT, DistilBERT, XLM-RoBERTa</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="tech-item">
+                    <div class="tech-name">Validation</div>
+                    <p class="small text-muted">Cross-validation, A/B Testing</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="tech-item">
+                    <div class="tech-name">Theoretical Frameworks</div>
+                    <p class="small text-muted">Uses and Gratifications, Social Proof</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="cta-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="mb-4">Ready to Combat Misinformation?</h2>
+                <p class="mb-4">Start by uploading your dataset to train a custom model, or use our pre-trained models to analyze content immediately. Our system provides accurate, explainable results for research, content moderation, and fact-checking applications.</p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('upload_form') }}" class="btn-custom">Upload Dataset</a>
+                    <a href="{{ url_for('predict') }}" class="btn-custom btn-outline-custom">Live Tweet Analysis</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block title %}Feature Engineering - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .feature-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .feature-type-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .feature-type-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    .feature-type-card.selected {
+        border: 2px solid #667eea;
+        background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #667eea;
+    }
+    
+    .progress-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-top: 2rem;
+        display: none;
+    }
+    
+    .progress-bar {
+        height: 20px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- Header -->
+    <div class="feature-card">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-cogs me-3"></i>Feature Engineering
+                </h1>
+                <p class="lead mb-0">
+                    Engineer comprehensive features from <strong>{{ dataset_name }}</strong> dataset
+                </p>
+                <p class="mb-0 mt-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Configure basic features, embeddings, and advanced feature extraction
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <i class="fas fa-cogs" style="font-size: 5rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Selection Form -->
+    <form id="featureForm" method="POST" action="{{ url_for('extract_features') }}">
+        <input type="hidden" name="dataset_name" value="{{ dataset_name }}">
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="feature-type-card" data-feature="text">
+                    <div class="text-center">
+                        <i class="fas fa-font feature-icon"></i>
+                        <h4>Text Features</h4>
+                        <p class="text-muted">
+                            TF-IDF vectors, n-grams, sentiment analysis, and linguistic patterns
+                        </p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="feature_types" value="text" id="text_features" checked>
+                            <label class="form-check-label" for="text_features">
+                                Include Text Features
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-type-card" data-feature="behavioral">
+                    <div class="text-center">
+                        <i class="fas fa-user-check feature-icon"></i>
+                        <h4>Behavioral Features</h4>
+                        <p class="text-muted">
+                            User activity patterns, engagement metrics, and posting behavior
+                        </p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="feature_types" value="behavioral" id="behavioral_features" checked>
+                            <label class="form-check-label" for="behavioral_features">
+                                Include Behavioral Features
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-type-card" data-feature="network">
+                    <div class="text-center">
+                        <i class="fas fa-network-wired feature-icon"></i>
+                        <h4>Network Features</h4>
+                        <p class="text-muted">
+                            Social network metrics, centrality measures, and community features
+                        </p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="feature_types" value="network" id="network_features">
+                            <label class="form-check-label" for="network_features">
+                                Include Network Features
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Embeddings Configuration -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-brain me-2"></i>Embeddings Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="embedding_model" class="form-label">Embedding Model</label>
+                                    <select class="form-select" name="embedding_model" id="embedding_model">
+                                        <option value="sentence-transformers/all-MiniLM-L6-v2" selected>MiniLM-L6-v2 (Fast, 384d)</option>
+                                        <option value="sentence-transformers/all-mpnet-base-v2">MPNet-Base-v2 (Best Quality, 768d)</option>
+                                        <option value="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2">Multilingual MiniLM (Supports Kiswahili)</option>
+                                        <option value="distilbert-base-uncased">DistilBERT (512d)</option>
+                                    </select>
+                                    <small class="form-text text-muted">Choose based on your language requirements and computational resources</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="embedding_strategy" class="form-label">Embedding Strategy</label>
+                                    <select class="form-select" name="embedding_strategy" id="embedding_strategy">
+                                        <option value="mean_pooling" selected>Mean Pooling</option>
+                                        <option value="cls_token">CLS Token</option>
+                                        <option value="max_pooling">Max Pooling</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="use_embeddings" id="use_embeddings" checked>
+                                    <label class="form-check-label" for="use_embeddings">
+                                        <strong>Generate Text Embeddings</strong>
+                                    </label>
+                                    <small class="form-text text-muted d-block">Creates dense vector representations of text</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="reduce_embeddings" id="reduce_embeddings">
+                                    <label class="form-check-label" for="reduce_embeddings">
+                                        <strong>Dimensionality Reduction</strong>
+                                    </label>
+                                    <small class="form-text text-muted d-block">Apply PCA/UMAP to reduce embedding dimensions</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zero-Shot Classification Configuration -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-robot me-2"></i>Zero-Shot Classification Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="zero_shot_model" class="form-label">Zero-Shot Model</label>
+                                    <select class="form-select" name="zero_shot_model" id="zero_shot_model">
+                                        <option value="facebook/bart-large-mnli" selected>BART-Large-MNLI</option>
+                                    </select>
+                                    <small class="form-text text-muted">Choose model based on accuracy vs speed requirements</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="confidence_threshold" class="form-label">Confidence Threshold</label>
+                                    <select class="form-select" name="confidence_threshold" id="confidence_threshold">
+                                        <option value="0.5">0.5 (Lenient)</option>
+                                        <option value="0.6">0.6</option>
+                                        <option value="0.7" selected>0.7 (Recommended)</option>
+                                        <option value="0.8">0.8 (Strict)</option>
+                                        <option value="0.9">0.9 (Very Strict)</option>
+                                    </select>
+                                    <small class="form-text text-muted">Minimum confidence for classification</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="label_set" class="form-label">Label Set</label>
+                                    <select class="form-select" name="label_set" id="label_set">
+                                        <option value="binary" selected>Binary (Misinformation/Legitimate)</option>
+                                        <option value="detailed">Detailed (Fake/Misleading/Satirical/Legitimate)</option>
+                                        <option value="kenyan_context">Kenyan Context (Political/Social/Economic)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" name="run_zero_shot" id="run_zero_shot" checked>
+                                    <label class="form-check-label" for="run_zero_shot">
+                                        <strong>Run Zero-Shot Classification</strong>
+                                    </label>
+                                    <small class="form-text text-muted d-block">Generate pseudo-labels and classification features</small>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="kenyan_context" id="kenyan_context" checked>
+                                    <label class="form-check-label" for="kenyan_context">
+                                        <strong>Kenyan Context Optimization</strong>
+                                    </label>
+                                    <small class="form-text text-muted d-block">Optimize for Kenyan political and social context</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Options -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-sliders-h me-2"></i>Advanced Options
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_features" class="form-label">Maximum Features</label>
+                                    <select class="form-select" name="max_features" id="max_features">
+                                        <option value="5000" selected>5,000 (Recommended)</option>
+                                        <option value="10000">10,000</option>
+                                        <option value="15000">15,000</option>
+                                        <option value="20000">20,000</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="ngram_range" class="form-label">N-gram Range</label>
+                                    <select class="form-select" name="ngram_range" id="ngram_range">
+                                        <option value="1,2" selected>Unigrams + Bigrams</option>
+                                        <option value="1,3">Unigrams + Bigrams + Trigrams</option>
+                                        <option value="2,3">Bigrams + Trigrams</option>
+                                        <option value="1,1">Unigrams Only</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <button type="submit" class="btn btn-primary btn-lg" id="extractBtn">
+                    <i class="fas fa-magic me-2"></i>Extract Features
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Progress Section -->
+    <div class="progress-section" id="progressSection">
+        <h4 class="mb-3">
+            <i class="fas fa-cogs me-2"></i>Extracting Features...
+        </h4>
+        <div class="progress mb-3">
+            <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar"></div>
+        </div>
+        <div id="progressText">Initializing feature extraction...</div>
+    </div>
+
+    <!-- AI-Generated Insights -->
+    {% include 'insights_component.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Feature card selection
+    document.querySelectorAll('.feature-type-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const checkbox = this.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            updateCardSelection();
+        });
+    });
+
+    // Update card visual selection
+    function updateCardSelection() {
+        document.querySelectorAll('.feature-type-card').forEach(card => {
+            const checkbox = card.querySelector('input[type="checkbox"]');
+            if (checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+    }
+
+    // Initialize card selection
+    updateCardSelection();
+
+    // Form submission
+    document.getElementById('featureForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Check if at least one feature type is selected
+        const checkedBoxes = document.querySelectorAll('input[name="feature_types"]:checked');
+        if (checkedBoxes.length === 0) {
+            alert('Please select at least one feature type.');
+            return;
+        }
+
+        // Show progress section
+        document.getElementById('progressSection').style.display = 'block';
+        document.getElementById('extractBtn').disabled = true;
+        
+        // Simulate progress
+        let progress = 0;
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        
+        const progressMessages = [
+            'Initializing feature extraction...',
+            'Processing text features...',
+            'Analyzing behavioral patterns...',
+            'Computing network metrics...',
+            'Finalizing feature matrix...'
+        ];
+        
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 20;
+            if (progress > 90) progress = 90;
+            
+            progressBar.style.width = progress + '%';
+            const messageIndex = Math.floor(progress / 20);
+            if (messageIndex < progressMessages.length) {
+                progressText.textContent = progressMessages[messageIndex];
+            }
+        }, 1000);
+
+        // Submit form via AJAX
+        const formData = new FormData(this);
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            clearInterval(progressInterval);
+            progressBar.style.width = '100%';
+            progressText.textContent = 'Feature extraction completed!';
+            
+            if (data.status === 'success') {
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 2000);
+            } else {
+                alert('Error: ' + data.message);
+                document.getElementById('extractBtn').disabled = false;
+                document.getElementById('progressSection').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            clearInterval(progressInterval);
+            alert('Error: ' + error.message);
+            document.getElementById('extractBtn').disabled = false;
+            document.getElementById('progressSection').style.display = 'none';
+        });
+    });
+</script>
+{% endblock %}

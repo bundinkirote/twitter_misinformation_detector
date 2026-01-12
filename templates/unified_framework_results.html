@@ -1,0 +1,913 @@
+{% extends "base.html" %}
+
+{% block title %}Unified Framework Results - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #667eea;
+        --secondary-color: #764ba2;
+        --success-color: #28a745;
+        --info-color: #17a2b8;
+        --warning-color: #ffc107;
+        --danger-color: #dc3545;
+    }
+    
+    body {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        margin: 40px auto;
+        padding: 40px;
+        max-width: 1400px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    .results-header {
+        background: linear-gradient(135deg, var(--success-color) 0%, var(--info-color) 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .framework-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin: 15px 0;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        border-left: 5px solid var(--primary-color);
+    }
+    
+    .best-performer {
+        border-left-color: var(--success-color);
+        background: linear-gradient(135deg, rgba(40, 167, 69, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+    
+    .algorithm-results {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+    }
+    
+    .metric-badge {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        margin: 2px;
+        display: inline-block;
+    }
+    
+    .best-badge {
+        background: linear-gradient(135deg, var(--success-color) 0%, #20c997 100%);
+    }
+    
+    .comparison-table {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        margin: 20px 0;
+    }
+    
+    .framework-summary {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        padding: 25px;
+        margin: 20px 0;
+    }
+    
+    .progress-custom {
+        height: 8px;
+        border-radius: 10px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .progress-bar-custom {
+        height: 100%;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--success-color) 0%, var(--info-color) 100%);
+        transition: width 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dataset_overview', dataset_name=dataset_name) }}">{{ dataset_name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Unified Framework Results</li>
+        </ol>
+    </nav>
+
+    <!-- Results Header -->
+    <div class="results-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">
+                    <i class="fas fa-trophy me-3"></i>Unified Framework Results
+                </h1>
+                <h4 class="mb-3">{{ dataset_name }}</h4>
+                <p class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Comparative Research Analysis:</strong> Baseline (TF-IDF+LDA) vs Framework-Enhanced (RAT+RCT+UGT+Transformers) vs Zero-shot (BART)
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <i class="fas fa-chart-line" style="font-size: 5rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Best Overall Performance -->
+    {% if results.comparative_analysis.best_overall %}
+    <div class="framework-summary">
+        <h3 class="mb-4">
+            <i class="fas fa-crown me-2 text-warning"></i>Best Overall Performance
+        </h3>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card border-success">
+                    <div class="card-body">
+                        <h5 class="card-title text-success">
+                            {{ results.comparative_analysis.best_overall.combination|title|replace('_', ' ') }}
+                        </h5>
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            {{ results.comparative_analysis.best_overall.algorithm|title|replace('_', ' ') }}
+                        </h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-success">{{ "%.3f"|format(results.comparative_analysis.best_overall.f1_score) }}</h4>
+                                    <small class="text-muted">F1 Score</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-info">{{ "%.3f"|format(results.comparative_analysis.best_overall.accuracy) }}</h4>
+                                    <small class="text-muted">Accuracy</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h6>Framework Effectiveness Ranking:</h6>
+                {% for framework, effectiveness in results.comparative_analysis.framework_effectiveness.items() %}
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between">
+                        <span>{{ framework|title|replace('_', ' ') }}</span>
+                        {% if effectiveness is mapping %}
+                        <span class="fw-bold">{{ "%.3f"|format(effectiveness.mean_f1) }}</span>
+                        {% else %}
+                        <span class="fw-bold">{{ "%.3f"|format(effectiveness) }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="progress-custom">
+                        {% if effectiveness is mapping %}
+                        <div class="progress-bar-custom" style="width: {{ (effectiveness.mean_f1 * 100)|round }}%"></div>
+                        {% else %}
+                        <div class="progress-bar-custom" style="width: {{ (effectiveness * 100)|round }}%"></div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Individual Framework Impact Analysis -->
+    {% if results.individual_framework_analysis %}
+    <div class="framework-summary">
+        <h3 class="mb-4">
+            <i class="fas fa-microscope me-2 text-info"></i>Individual Framework Impact Analysis
+        </h3>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-trophy me-2"></i>Best Individual Framework
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if results.individual_framework_analysis.best_individual_framework %}
+                        <h4 class="text-info">
+                            {{ results.individual_framework_analysis.best_individual_framework.framework.upper() }}
+                        </h4>
+                        <p class="mb-2">
+                            <strong>Mean F1 Score:</strong> 
+                            <span class="text-success">{{ "%.3f"|format(results.individual_framework_analysis.best_individual_framework.mean_f1) }}</span>
+                        </p>
+                        <p class="mb-0 small text-muted">
+                            Using combination: {{ results.individual_framework_analysis.best_individual_framework.combination_name|replace('_', ' ')|title }}
+                        </p>
+                        {% else %}
+                        <p class="text-muted">Individual framework analysis not available</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card border-secondary">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>Framework Ranking
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if results.individual_framework_analysis.framework_ranking %}
+                        {% for framework_rank in results.individual_framework_analysis.framework_ranking %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <span class="badge bg-primary me-2">{{ framework_rank.rank }}</span>
+                                <strong>{{ framework_rank.framework.upper() }}</strong>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold text-success">{{ "%.3f"|format(framework_rank.mean_f1) }}</span>
+                                <br><small class="text-muted">F1 Score</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted">Framework ranking not available</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Research Insights -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-lightbulb me-2"></i>Research Insights</h6>
+                    <ul class="mb-0">
+                        {% if results.individual_framework_analysis.best_individual_framework %}
+                        <li><strong>{{ results.individual_framework_analysis.best_individual_framework.framework.upper() }}</strong> shows the highest individual impact with F1 score of {{ "%.3f"|format(results.individual_framework_analysis.best_individual_framework.mean_f1) }}</li>
+                        {% endif %}
+                        {% if results.individual_framework_analysis.framework_ranking|length > 1 %}
+                        <li>Framework effectiveness ranking: 
+                            {% for framework_rank in results.individual_framework_analysis.framework_ranking %}
+                                {{ framework_rank.framework.upper() }}{% if not loop.last %} > {% endif %}
+                            {% endfor %}
+                        </li>
+                        {% endif %}
+                        <li>Individual framework testing isolates the specific contribution of each theoretical approach</li>
+                        <li>Results provide evidence for which theoretical framework is most effective for misinformation detection</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Framework Combination Results with Tables and Charts -->
+    <div class="row">
+        {% for combo_name, combo_results in results.results.items() %}
+        <div class="col-12 mb-4">
+            <div class="framework-card {% if results.comparative_analysis.best_overall and results.comparative_analysis.best_overall.combination == combo_name %}best-performer{% endif %}">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>{{ combo_name|title|replace('_', ' ') }}
+                        {% if results.comparative_analysis.best_overall and results.comparative_analysis.best_overall.combination == combo_name %}
+                        <span class="badge bg-success ms-2">BEST OVERALL</span>
+                        {% endif %}
+                    </h4>
+                    <div>
+                        <span class="metric-badge">{{ combo_results.feature_count or 'N/A' }} features</span>
+                        <span class="metric-badge">{{ combo_results.algorithms|length }} algorithms</span>
+                    </div>
+                </div>
+                
+                <!-- Table and Chart Layout -->
+                <div class="row">
+                    <!-- Left Side: Results Table -->
+                    <div class="col-md-7">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Algorithm</th>
+                                        <th>Accuracy</th>
+                                        <th>F1 Score</th>
+                                        <th>Precision</th>
+                                        <th>Recall</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for algo_name, algo_results in combo_results.algorithms.items() %}
+                                    {% if 'error' not in algo_results %}
+                                    <tr {% if results.comparative_analysis.best_overall and results.comparative_analysis.best_overall.combination == combo_name and results.comparative_analysis.best_overall.algorithm == algo_name %}class="table-success"{% endif %}>
+                                        <td>
+                                            <strong>{{ algo_name|title|replace('_', ' ') }}</strong>
+                                            {% if results.comparative_analysis.best_overall and results.comparative_analysis.best_overall.combination == combo_name and results.comparative_analysis.best_overall.algorithm == algo_name %}
+                                            <span class="badge bg-success ms-1">BEST</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% set accuracy = algo_results.metrics.get('accuracy', 0) %}
+                                            <span class="badge {% if accuracy > 0.8 %}bg-success{% elif accuracy > 0.7 %}bg-warning{% else %}bg-secondary{% endif %}">
+                                                {{ "%.3f"|format(accuracy) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% set f1_score = algo_results.metrics.get('f1_score', 0) %}
+                                            <span class="badge {% if f1_score > 0.8 %}bg-success{% elif f1_score > 0.7 %}bg-warning{% else %}bg-secondary{% endif %}">
+                                                {{ "%.3f"|format(f1_score) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% set precision = algo_results.metrics.get('precision', 0) %}
+                                            <span class="badge {% if precision > 0.8 %}bg-success{% elif precision > 0.7 %}bg-warning{% else %}bg-secondary{% endif %}">
+                                                {{ "%.3f"|format(precision) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% set recall = algo_results.metrics.get('recall', 0) %}
+                                            <span class="badge {% if recall > 0.8 %}bg-success{% elif recall > 0.7 %}bg-warning{% else %}bg-secondary{% endif %}">
+                                                {{ "%.3f"|format(recall) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-check-circle text-success"></i>
+                                            <small class="text-muted">Completed</small>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr class="table-danger">
+                                        <td><strong>{{ algo_name|title|replace('_', ' ') }}</strong></td>
+                                        <td colspan="5">
+                                            <i class="fas fa-exclamation-triangle text-danger"></i>
+                                            <small class="text-danger">{{ algo_results.error }}</small>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Side: Performance Chart -->
+                    <div class="col-md-5">
+                        {% if visualizations and visualizations['performance_' + combo_name] %}
+                        <div class="text-center">
+                            <h6 class="mb-3">Performance Comparison</h6>
+                            <img src="{{ visualizations['performance_' + combo_name] }}" 
+                                 alt="Performance Chart for {{ combo_name|title|replace('_', ' ') }}" 
+                                 class="img-fluid rounded shadow-sm"
+                                 style="max-height: 300px;">
+                        </div>
+                        {% else %}
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                                <p>Performance chart will be generated</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Legacy Card View (Hidden by default, can be toggled) -->
+                <div class="collapse" id="cardView{{ loop.index }}">
+                    <hr>
+                    <div class="row">
+                        {% for algo_name, algo_results in combo_results.algorithms.items() %}
+                        {% if 'error' not in algo_results %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="algorithm-results">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">{{ algo_name|title|replace('_', ' ') }}</h6>
+                                {% if results.comparative_analysis.best_overall and results.comparative_analysis.best_overall.combination == combo_name and results.comparative_analysis.best_overall.algorithm == algo_name %}
+                                <span class="badge bg-success">BEST</span>
+                                {% endif %}
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    {% set accuracy = algo_results.metrics.get('accuracy', 0) %}
+                                    <div class="metric-badge {% if accuracy > 0.8 %}best-badge{% endif %}">
+                                        Acc: {{ "%.3f"|format(accuracy) }}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    {% set f1_score = algo_results.metrics.get('f1_score', 0) %}
+                                    <div class="metric-badge {% if f1_score > 0.8 %}best-badge{% endif %}">
+                                        F1: {{ "%.3f"|format(f1_score) }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row text-center mt-1">
+                                <div class="col-6">
+                                    {% set precision = algo_results.metrics.get('precision', 0) %}
+                                    <div class="metric-badge">
+                                        Prec: {{ "%.3f"|format(precision) }}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    {% set recall = algo_results.metrics.get('recall', 0) %}
+                                    <div class="metric-badge">
+                                        Rec: {{ "%.3f"|format(recall) }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if algo_results.metrics.get('cv_mean') %}
+                            <div class="text-center mt-2">
+                                <small class="text-muted">
+                                    CV: {{ "%.3f"|format(algo_results.metrics['cv_mean']) }} ± {{ "%.3f"|format(algo_results.metrics['cv_std']) }}
+                                </small>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Hyperparameter Tuning Results -->
+                            {% if algo_results.hyperparameter_tuning %}
+                            <div class="mt-2">
+                                {% if algo_results.hyperparameter_tuning.best_cv_score %}
+                                <div class="text-center">
+                                    <small class="badge bg-info">
+                                        <i class="fas fa-cog me-1"></i>Tuned: {{ "%.3f"|format(algo_results.hyperparameter_tuning.best_cv_score) }}
+                                    </small>
+                                </div>
+                                {% endif %}
+                                {% if algo_results.hyperparameter_tuning.best_params %}
+                                <div class="mt-1" style="max-height: 60px; overflow-y: auto;">
+                                    <small class="text-muted">
+                                        <strong>Best params:</strong><br>
+                                        {% for param, value in algo_results.hyperparameter_tuning.best_params.items() %}
+                                            {{ param }}: {{ value }}{% if not loop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="algorithm-results border-danger">
+                            <h6 class="text-danger">{{ algo_name|title|replace('_', ' ') }}</h6>
+                            <p class="text-danger mb-0">Error: {{ algo_results.error }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Algorithm Performance Comparison -->
+    {% if results.comparative_analysis.algorithm_rankings %}
+    <div class="framework-summary">
+        <h3 class="mb-4">
+            <i class="fas fa-chart-bar me-2"></i>Algorithm Performance Ranking
+        </h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Algorithm</th>
+                        <th>Mean F1 Score</th>
+                        <th>Max F1 Score</th>
+                        <th>Std Deviation</th>
+                        <th>Models Tested</th>
+                        <th>Performance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for algo_name, algo_stats in results.comparative_analysis.algorithm_rankings.items() %}
+                    <tr>
+                        <td><strong>{{ algo_name|title|replace('_', ' ') }}</strong></td>
+                        <td>{{ "%.4f"|format(algo_stats.mean_f1) }}</td>
+                        <td>{{ "%.4f"|format(algo_stats.max_f1) }}</td>
+                        <td>{{ "%.4f"|format(algo_stats.std_f1) }}</td>
+                        <td>{{ algo_stats.model_count }}</td>
+                        <td>
+                            <div class="progress-custom">
+                                <div class="progress-bar-custom" style="width: {{ (algo_stats.mean_f1 * 100)|round }}%"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Research Insights -->
+    {% if results.comparative_analysis.research_insights %}
+    <div class="framework-summary">
+        <h3 class="mb-4">
+            <i class="fas fa-lightbulb me-2 text-warning"></i>Research Insights
+        </h3>
+        
+        <!-- Framework Improvement Analysis -->
+        {% if results.comparative_analysis.research_insights.framework_improvement %}
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h5>Framework Impact Analysis</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h4 class="text-primary">{{ "%.1f"|format(results.comparative_analysis.research_insights.framework_improvement.transformer_improvement) }}%</h4>
+                            <small>Transformer Improvement vs Baseline</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h4 class="text-success">{{ "%.1f"|format(results.comparative_analysis.research_insights.framework_improvement.framework_improvement) }}%</h4>
+                            <small>Framework Enhancement vs Baseline</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h4 class="text-warning">{{ "%.1f"|format(results.comparative_analysis.research_insights.framework_improvement.complete_improvement) }}%</h4>
+                            <small>Full Integration vs Baseline</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Zero-shot Comparison -->
+        {% if results.comparative_analysis.research_insights.zero_shot_performance %}
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h5>Zero-shot vs Traditional Models</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-info text-white rounded">
+                            {% if results.comparative_analysis.research_insights.zero_shot_performance.f1_score is defined %}
+                            <h4>{{ "%.3f"|format(results.comparative_analysis.research_insights.zero_shot_performance.f1_score) }}</h4>
+                            {% else %}
+                            <h4>{{ "%.3f"|format(results.comparative_analysis.research_insights.zero_shot_performance.zero_shot_confidence or 0) }}</h4>
+                            {% endif %}
+                            <small>Zero-shot Performance</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            {% if results.comparative_analysis.research_insights.zero_shot_performance.vs_baseline is defined %}
+                            <h4 class="text-info">{{ "%.1f"|format(results.comparative_analysis.research_insights.zero_shot_performance.vs_baseline) }}%</h4>
+                            {% else %}
+                            <h4 class="text-info">{{ "%.1f"|format((results.comparative_analysis.research_insights.zero_shot_performance.zero_shot_confidence / results.comparative_analysis.research_insights.zero_shot_performance.traditional_avg_f1 * 100) if results.comparative_analysis.research_insights.zero_shot_performance.traditional_avg_f1 > 0 else 0) }}%</h4>
+                            {% endif %}
+                            <small>vs Baseline Performance</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            {% if results.comparative_analysis.research_insights.zero_shot_performance.vs_best_traditional is defined %}
+                            <h4 class="text-info">{{ "%.1f"|format(results.comparative_analysis.research_insights.zero_shot_performance.vs_best_traditional) }}%</h4>
+                            {% else %}
+                            <h4 class="text-info">{{ "%.1f"|format(results.comparative_analysis.research_insights.zero_shot_performance.zero_shot_coverage * 100) }}%</h4>
+                            {% endif %}
+                            <small>Coverage Rate</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Recommendations -->
+        {% if results.comparative_analysis.research_insights.recommendations %}
+        <div class="row">
+            <div class="col-md-12">
+                <h5>Research Conclusions</h5>
+                <ul class="list-unstyled">
+                    {% for recommendation in results.comparative_analysis.research_insights.recommendations %}
+                    <li class="mb-2">
+                        <span class="badge bg-secondary me-2">Finding</span>
+                        {{ recommendation }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Training Information -->
+    <div class="framework-summary">
+        <h3 class="mb-4">
+            <i class="fas fa-info-circle me-2"></i>Training Information
+        </h3>
+        <div class="row">
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li><strong>Dataset:</strong> {{ results.dataset_name }}</li>
+                    <li><strong>Training Date:</strong> {{ results.training_date[:19]|replace('T', ' ') }}</li>
+                    <li><strong>Framework Type:</strong> {{ results.framework_type|title|replace('_', ' ') }}</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li><strong>Algorithms Tested:</strong> {{ results.algorithms_tested|length }}</li>
+                    <li><strong>Combinations Tested:</strong> {{ results.combinations_tested|length }}</li>
+                    <li><strong>Total Models:</strong> {{ results.algorithms_tested|length * results.combinations_tested|length }}</li>
+                    {% if results.zero_shot_results %}
+                    <li><strong>Zero-shot Model:</strong> {{ results.zero_shot_results.model_name or results.zero_shot_results.algorithm or 'BART Zero-shot' }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visualizations Section -->
+    {% if visualizations %}
+    <div class="framework-summary">
+        <h3 class="mb-4">
+            <i class="fas fa-chart-line me-2 text-primary"></i>Performance Visualizations
+        </h3>
+        
+        <div class="row">
+            <!-- Framework Effectiveness Chart -->
+            {% if visualizations.framework_effectiveness %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Framework Effectiveness Ranking</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="{{ visualizations.framework_effectiveness }}" 
+                             alt="Framework Effectiveness" 
+                             class="img-fluid rounded shadow-sm">
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Algorithm Ranking Chart -->
+            {% if visualizations.algorithm_ranking %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-medal me-2"></i>Algorithm Performance Ranking</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="{{ visualizations.algorithm_ranking }}" 
+                             alt="Algorithm Ranking" 
+                             class="img-fluid rounded shadow-sm">
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- ROC Curves -->
+            {% if visualizations.roc_curves %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>ROC Curves Comparison</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="{{ visualizations.roc_curves }}" 
+                             alt="ROC Curves" 
+                             class="img-fluid rounded shadow-sm">
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Comparative Analysis -->
+            {% if visualizations.comparative_analysis %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-white">
+                        <h5 class="mb-0"><i class="fas fa-th me-2"></i>Performance Matrix</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="{{ visualizations.comparative_analysis }}" 
+                             alt="Comparative Analysis" 
+                             class="img-fluid rounded shadow-sm">
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Confusion Matrix -->
+            {% if visualizations.confusion_matrix %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Best Model Confusion Matrix</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="{{ visualizations.confusion_matrix }}" 
+                             alt="Confusion Matrix" 
+                             class="img-fluid rounded shadow-sm">
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Feature Importance -->
+            {% if visualizations.feature_importance %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Feature Importance</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="{{ visualizations.feature_importance }}" 
+                             alt="Feature Importance" 
+                             class="img-fluid rounded shadow-sm">
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Advanced Features Section -->
+    <div class="framework-summary">
+        <h3 class="mb-4">
+            <i class="fas fa-tools me-2 text-primary"></i>Advanced Analysis & Optimization
+        </h3>
+        
+        <!-- Expandable Sections -->
+        <div class="accordion" id="advancedFeaturesAccordion">
+            
+            <!-- Prediction Section -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="predictionHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#predictionCollapse" aria-expanded="false" aria-controls="predictionCollapse">
+                        <i class="fas fa-magic me-2 text-info"></i>
+                        <strong>Model Prediction & Testing</strong>
+                        <span class="ms-2 badge bg-info">Interactive</span>
+                    </button>
+                </h2>
+                <div id="predictionCollapse" class="accordion-collapse collapse" aria-labelledby="predictionHeading" data-bs-parent="#advancedFeaturesAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p class="mb-3">Test your trained models with new text samples and get real-time predictions with confidence scores.</p>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success me-2"></i>Single text prediction</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Batch file upload</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Ensemble predictions</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Confidence scoring</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="{{ url_for('predict', dataset_name=dataset_name) }}" class="btn btn-info btn-lg">
+                                    <i class="fas fa-play me-2"></i>Start Predicting
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hyperparameter Optimization Section -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="optimizationHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#optimizationCollapse" aria-expanded="false" aria-controls="optimizationCollapse">
+                        <i class="fas fa-cogs me-2 text-warning"></i>
+                        <strong>Hyperparameter Optimization</strong>
+                        <span class="ms-2 badge bg-warning">Advanced</span>
+                    </button>
+                </h2>
+                <div id="optimizationCollapse" class="accordion-collapse collapse" aria-labelledby="optimizationHeading" data-bs-parent="#advancedFeaturesAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p class="mb-3">Fine-tune your models with advanced hyperparameter optimization techniques to achieve even better performance.</p>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success me-2"></i>Grid Search optimization</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Random Search tuning</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Bayesian optimization</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Cross-validation scoring</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="{{ url_for('hyperparameter_configuration', dataset_name=dataset_name) }}" class="btn btn-warning btn-lg">
+                                    <i class="fas fa-sliders-h me-2"></i>Optimize Models
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Explainability Section -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="explainabilityHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#explainabilityCollapse" aria-expanded="false" aria-controls="explainabilityCollapse">
+                        <i class="fas fa-lightbulb me-2 text-success"></i>
+                        <strong>Model Explainability & Interpretability</strong>
+                        <span class="ms-2 badge bg-success">Insights</span>
+                    </button>
+                </h2>
+                <div id="explainabilityCollapse" class="accordion-collapse collapse" aria-labelledby="explainabilityHeading" data-bs-parent="#advancedFeaturesAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p class="mb-3">Understand how your models make decisions with comprehensive explainability analysis and feature importance insights.</p>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success me-2"></i>SHAP value analysis</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Feature importance ranking</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Decision boundary visualization</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Model interpretation reports</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="{{ url_for('explainability_analysis', dataset_name=dataset_name) }}" class="btn btn-success btn-lg">
+                                    <i class="fas fa-search me-2"></i>Explain Models
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Network Analysis Section -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="networkHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#networkCollapse" aria-expanded="false" aria-controls="networkCollapse">
+                        <i class="fas fa-project-diagram me-2 text-danger"></i>
+                        <strong>Network Analysis & Social Patterns</strong>
+                        <span class="ms-2 badge bg-danger">Research</span>
+                    </button>
+                </h2>
+                <div id="networkCollapse" class="accordion-collapse collapse" aria-labelledby="networkHeading" data-bs-parent="#advancedFeaturesAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p class="mb-3">Analyze social network patterns and user behavior to understand misinformation spread and influence networks.</p>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success me-2"></i>Social network mapping</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Influence analysis</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Community detection</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Propagation patterns</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="{{ url_for('network_analysis', dataset_name=dataset_name) }}" class="btn btn-danger btn-lg">
+                                    <i class="fas fa-network-wired me-2"></i>Analyze Networks
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Main Action Buttons -->
+    <div class="text-center mt-4">
+        <a href="{{ url_for('model_training', dataset_name=dataset_name) }}" class="btn btn-primary btn-lg me-3">
+            <i class="fas fa-arrow-left me-2"></i>Back to Training
+        </a>
+        <a href="{{ url_for('dataset_overview', dataset_name=dataset_name) }}" class="btn btn-outline-primary btn-lg">
+            <i class="fas fa-home me-2"></i>Dataset Overview
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add any interactive features here
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate progress bars
+        const progressBars = document.querySelectorAll('.progress-bar-custom');
+        progressBars.forEach(bar => {
+            const width = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = width;
+            }, 500);
+        });
+    });
+</script>
+{% endblock %}

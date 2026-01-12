@@ -1,0 +1,1317 @@
+{% extends "base.html" %}
+
+{% block title %}Model Configuration - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #667eea;
+        --secondary-color: #764ba2;
+        --success-color: #28a745;
+        --info-color: #17a2b8;
+        --warning-color: #ffc107;
+        --danger-color: #dc3545;
+    }
+    
+    body {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        margin: 40px auto;
+        padding: 40px;
+        max-width: 1200px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    .config-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .model-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin: 15px 0;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+    
+    .model-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+    
+    .model-card.selected {
+        border-color: var(--primary-color);
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    }
+    
+    .model-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: var(--primary-color);
+    }
+    
+    .progress-steps {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 30px 0;
+        padding: 20px;
+    }
+    
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        flex: 1;
+        max-width: 150px;
+    }
+    
+    .step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 60%;
+        width: 80%;
+        height: 2px;
+        background: #dee2e6;
+        z-index: 0;
+    }
+    
+    .step.completed:not(:last-child)::after {
+        background: linear-gradient(90deg, var(--success-color), #20c997);
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #dee2e6;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-bottom: 8px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .step.completed .step-number {
+        background: linear-gradient(135deg, var(--success-color), #20c997);
+        color: white;
+    }
+    
+    .step.active .step-number {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .config-section {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin: 20px 0;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .parameter-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 15px 0;
+        border: 1px solid #dee2e6;
+    }
+    
+    .model-comparison {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        padding: 25px;
+        margin: 20px 0;
+    }
+    
+    .comparison-table {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .btn-configure {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        border: none;
+        padding: 15px 40px;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .btn-configure:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    
+    .algorithm-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    /* Pipeline Analysis Summary Styles */
+    .analysis-summary-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin: 15px 0;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        border-left: 4px solid var(--primary-color);
+        transition: all 0.3s ease;
+    }
+    
+    .analysis-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+    
+    .analysis-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .analysis-header i {
+        font-size: 1.5rem;
+        margin-right: 10px;
+    }
+    
+    .analysis-header h5 {
+        margin: 0;
+        font-weight: 600;
+    }
+    
+    .analysis-metrics {
+        margin-bottom: 20px;
+    }
+    
+    .metric {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .metric:last-child {
+        border-bottom: none;
+    }
+    
+    .metric-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .metric-label {
+        font-size: 0.9rem;
+        color: #666;
+        font-weight: 500;
+    }
+    
+    .analysis-status {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .analysis-status i {
+        margin-right: 8px;
+    }
+    
+    .feature-breakdown-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        border: 2px solid #e9ecef;
+    }
+    
+    .feature-count {
+        padding: 15px;
+    }
+    
+    .count-value {
+        display: block;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    
+    .count-label {
+        display: block;
+        font-size: 0.85rem;
+        color: #666;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dataset_overview', dataset_name=dataset_name) }}">{{ dataset_name }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('feature_results', dataset_name=dataset_name) }}">Feature Results</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Model Configuration</li>
+        </ol>
+    </nav>
+
+    <!-- Progress Steps -->
+    <div class="progress-steps">
+        <div class="step completed">
+            <div class="step-number"><i class="fas fa-check"></i></div>
+            <small>Data Upload</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number"><i class="fas fa-check"></i></div>
+            <small>Feature Extraction</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number"><i class="fas fa-check"></i></div>
+            <small>Feature Results</small>
+        </div>
+        <div class="step active">
+            <div class="step-number">4</div>
+            <small>Model Config</small>
+        </div>
+        <div class="step">
+            <div class="step-number">5</div>
+            <small>Training</small>
+        </div>
+        <div class="step">
+            <div class="step-number">6</div>
+            <small>Results</small>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="config-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-cogs me-3"></i>Model Configuration
+                </h1>
+                <p class="lead mb-0">
+                    Configure machine learning models for <strong>{{ dataset_name }}</strong>
+                </p>
+                <p class="mb-0 mt-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Select models and configure training parameters for optimal performance
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <i class="fas fa-sliders-h" style="font-size: 5rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline Analysis Summary -->
+    {% if gratification_results or content_results or behavioral_results %}
+    <div class="config-section mb-4">
+        <h3 class="mb-4">
+            <i class="fas fa-chart-pie me-2"></i>Pipeline Analysis Summary
+            <span class="badge bg-success ms-2">COMPLETED</span>
+        </h3>
+        
+        <div class="row">
+            <!-- Content Analysis Summary -->
+            {% if content_results %}
+            <div class="col-md-4">
+                <div class="analysis-summary-card">
+                    <div class="analysis-header">
+                        <i class="fas fa-file-alt text-primary"></i>
+                        <h5>Content Analysis</h5>
+                    </div>
+                    <div class="analysis-metrics">
+                        <div class="metric">
+                            <span class="metric-value">{{ content_results.get('total_posts_analyzed', 0) }}</span>
+                            <span class="metric-label">Posts Analyzed</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">{{ content_results.get('language_distribution', {}).keys()|length or 0 }}</span>
+                            <span class="metric-label">Languages Detected</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">{{ "%.1f"|format(content_results.get('avg_sentiment_score', 0) * 100) }}%</span>
+                            <span class="metric-label">Avg Sentiment</span>
+                        </div>
+                    </div>
+                    <div class="analysis-status">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <span>Content features extracted</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Behavioral Analysis Summary -->
+            {% if behavioral_results %}
+            <div class="col-md-4">
+                <div class="analysis-summary-card">
+                    <div class="analysis-header">
+                        <i class="fas fa-users text-info"></i>
+                        <h5>Behavioral Analysis</h5>
+                    </div>
+                    <div class="analysis-metrics">
+                        <div class="metric">
+                            <span class="metric-value">{{ behavioral_results.get('behavioral_metrics', {}).get('total_users_analyzed', 0) }}</span>
+                            <span class="metric-label">Users Analyzed</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">{{ behavioral_results.get('behavioral_metrics', {}).get('high_activity_users', 0) }}</span>
+                            <span class="metric-label">High Activity Users</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">{{ "%.1f"|format((behavioral_results.get('behavioral_metrics', {}).get('avg_engagement_rate', 0)) * 100) }}%</span>
+                            <span class="metric-label">Engagement Rate</span>
+                        </div>
+                    </div>
+                    <div class="analysis-status">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <span>Behavioral patterns identified</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Gratification Analysis Summary -->
+            {% if gratification_results %}
+            <div class="col-md-4">
+                <div class="analysis-summary-card">
+                    <div class="analysis-header">
+                        <i class="fas fa-brain text-warning"></i>
+                        <h5>Gratification Analysis</h5>
+                    </div>
+                    <div class="analysis-metrics">
+                        <div class="metric">
+                            <span class="metric-value">{{ gratification_results.get('total_features', 0) }}</span>
+                            <span class="metric-label">Total Features</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">{{ gratification_results.get('feature_breakdown', {}).get('content_gratification', 0) }}</span>
+                            <span class="metric-label">UGT Features</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">{{ gratification_results.get('feature_breakdown', {}).get('theoretical_frameworks', 0) }}</span>
+                            <span class="metric-label">RAT/RCT Features</span>
+                        </div>
+                    </div>
+                    <div class="analysis-status">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <span>Theoretical frameworks applied</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Feature Breakdown Overview -->
+        {% if gratification_results and gratification_results.get('feature_breakdown') %}
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="feature-breakdown-card">
+                    <h6><i class="fas fa-layer-group me-2"></i>Feature Engineering Summary</h6>
+                    <div class="row text-center">
+                        <div class="col-md-2">
+                            <div class="feature-count">
+                                <div class="count-value text-primary">{{ gratification_results.feature_breakdown.traditional_features or 0 }}</div>
+                                <div class="count-label">Traditional</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="feature-count">
+                                <div class="count-value text-info">{{ gratification_results.feature_breakdown.content_gratification or 0 }}</div>
+                                <div class="count-label">UGT</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="feature-count">
+                                <div class="count-value text-secondary">{{ gratification_results.feature_breakdown.theoretical_frameworks or 0 }}</div>
+                                <div class="count-label">RAT/RCT</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="feature-count">
+                                <div class="count-value text-warning">{{ gratification_results.feature_breakdown.behavioral_patterns or 0 }}</div>
+                                <div class="count-label">Behavioral</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="feature-count">
+                                <div class="count-value text-success">{{ gratification_results.feature_breakdown.sentiment_analysis or 0 }}</div>
+                                <div class="count-label">Sentiment</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="feature-count">
+                                <div class="count-value text-dark"><strong>{{ gratification_results.total_features or 0 }}</strong></div>
+                                <div class="count-label"><strong>Total</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Ready for Training Alert -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="alert alert-success">
+                    <i class="fas fa-rocket me-2"></i>
+                    <strong>Ready for Model Training!</strong> 
+                    All analysis phases completed successfully. Configure your models below and start training.
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Unified Framework Configuration Form -->
+    <form id="configForm" method="POST" action="{{ url_for('configure_unified_framework') }}">
+        <input type="hidden" name="dataset_name" value="{{ dataset_name }}">
+        
+        <!-- Model Selection -->
+        <div class="config-section">
+            <h3 class="mb-4">
+                <i class="fas fa-robot me-2"></i>Select Machine Learning Models
+            </h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="model-card selected" id="lrCard" onclick="toggleModel('lr')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="selected_models" value="logistic_regression" id="logistic_regression" checked>
+                                <label class="form-check-label fw-bold" for="logistic_regression">
+                                    Logistic Regression
+                                </label>
+                            </div>
+                            <span class="algorithm-badge">Linear</span>
+                        </div>
+                        <p class="text-muted mb-3">Fast, interpretable linear classifier excellent for text classification</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="nbCard" onclick="toggleModel('nb')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="selected_models" value="naive_bayes" id="naive_bayes" checked>
+                                <label class="form-check-label fw-bold" for="naive_bayes">
+                                    Naive Bayes
+                                </label>
+                            </div>
+                            <span class="algorithm-badge">Probabilistic</span>
+                        </div>
+                        <p class="text-muted mb-3">Fast probabilistic classifier that works well with text data and sparse features</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="gbCard" onclick="toggleModel('gb')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="selected_models" value="gradient_boosting" id="gradient_boosting" checked>
+                                <label class="form-check-label fw-bold" for="gradient_boosting">
+                                    Gradient Boosting
+                                </label>
+                            </div>
+                            <span class="algorithm-badge">Boosting</span>
+                        </div>
+                        <p class="text-muted mb-3">Powerful sequential ensemble for high accuracy</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="model-card selected" id="svmCard" onclick="toggleModel('svm')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="selected_models" value="svm" id="svm" checked>
+                                <label class="form-check-label fw-bold" for="svm">
+                                    Support Vector Machine
+                                </label>
+                            </div>
+                            <span class="algorithm-badge">Kernel</span>
+                        </div>
+                        <p class="text-muted mb-3">Powerful margin-based classifier with kernel tricks</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="nnCard" onclick="toggleModel('nn')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="selected_models" value="neural_network" id="neural_network" checked>
+                                <label class="form-check-label fw-bold" for="neural_network">
+                                    Neural Network
+                                </label>
+                            </div>
+                            <span class="algorithm-badge">Deep Learning</span>
+                        </div>
+                        <p class="text-muted mb-3">Multi-layer perceptron that learns complex non-linear patterns</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="rfCard" onclick="toggleModel('rf')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="selected_models" value="random_forest" id="random_forest" checked>
+                                <label class="form-check-label fw-bold" for="random_forest">
+                                    Random Forest
+                                </label>
+                            </div>
+                            <span class="algorithm-badge">Ensemble</span>
+                        </div>
+                        <p class="text-muted mb-3">Robust ensemble method that handles overfitting well</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="zeroShotCard" onclick="toggleModel('zeroShot')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="selected_models" value="zero_shot" id="zero_shot" checked>
+                                <label class="form-check-label fw-bold" for="zero_shot">
+                                    Zero-Shot Classification
+                                </label>
+                            </div>
+                            <span class="algorithm-badge">Transformer</span>
+                        </div>
+                        <p class="text-muted mb-3">BART-based zero-shot classification for comparison with traditional methods</p>
+                        <div class="mt-2">
+                            <small class="text-info">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Uses facebook/bart-large-mnli for misinformation detection
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unified Framework Combinations -->
+        <div class="config-section">
+            <h3 class="mb-4">
+                <i class="fas fa-brain me-2"></i>Unified Framework Combinations
+                <span class="badge bg-success ms-2">OPTIMIZED</span>
+            </h3>
+            <div class="alert alert-info">
+                <i class="fas fa-microscope me-2"></i>
+                <strong>Comparative Research Analysis</strong><br>
+                <strong>Research Question:</strong> Do theoretical frameworks (RAT+RCT+UGT) + transformer embeddings improve misinformation detection over traditional TF-IDF+LDA baseline?<br>
+                <strong>Method:</strong> Each combination tests ALL 6 ML algorithms + Zero-shot BART comparison.
+            </div>
+            
+            <div class="row">
+                <!-- BASELINE GROUP -->
+                <div class="col-md-6">
+                    <div class="model-card selected" id="baselineTraditionalCard" onclick="toggleModel('baseline_traditional')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="baseline_traditional" id="baseline_traditional" checked>
+                                <label class="form-check-label fw-bold" for="baseline_traditional">
+                                    Baseline Traditional
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #6c757d, #495057);">BASELINE</span>
+                        </div>
+                        <p class="text-muted mb-3">TF-IDF + LDA features only (~1000 features)</p>
+                        <div class="mt-2">
+                            <small class="text-secondary">
+                                <i class="fas fa-check-circle me-1"></i>
+                                Control group: Traditional NLP without frameworks/transformers
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="transformerOnlyCard" onclick="toggleModel('transformer_only')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="transformer_only" id="transformer_only" checked>
+                                <label class="form-check-label fw-bold" for="transformer_only">
+                                    Transformer Only
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #6f42c1, #e83e8c);">ENHANCED</span>
+                        </div>
+                        <p class="text-muted mb-3">BERT + Sentence-BERT embeddings only (1152 features)</p>
+                        <div class="mt-2">
+                            <small class="text-primary">
+                                <i class="fas fa-check-circle me-1"></i>
+                                Testing transformer impact vs baseline
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- INDIVIDUAL FRAMEWORK TESTING (Testing each framework's isolated impact) -->
+                <div class="col-md-6">
+                    <div class="model-card selected" id="ratOnlyEmbeddingsCard" onclick="toggleModel('rat_only_embeddings')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="rat_only_embeddings" id="rat_only_embeddings" checked>
+                                <label class="form-check-label fw-bold" for="rat_only_embeddings">
+                                    RAT + Embeddings Only
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #ffc107, #fd7e14);">INDIVIDUAL</span>
+                        </div>
+                        <p class="text-muted mb-3">RAT + Transformers only (1167 features)</p>
+                        <div class="mt-2">
+                            <small class="text-warning">
+                                <i class="fas fa-microscope me-1"></i>
+                                Testing isolated RAT framework impact
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="rctOnlyEmbeddingsCard" onclick="toggleModel('rct_only_embeddings')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="rct_only_embeddings" id="rct_only_embeddings" checked>
+                                <label class="form-check-label fw-bold" for="rct_only_embeddings">
+                                    RCT + Embeddings Only
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #17a2b8, #20c997);">INDIVIDUAL</span>
+                        </div>
+                        <p class="text-muted mb-3">RCT + Transformers only (1164 features)</p>
+                        <div class="mt-2">
+                            <small class="text-info">
+                                <i class="fas fa-microscope me-1"></i>
+                                Testing isolated RCT framework impact
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="ugtOnlyEmbeddingsCard" onclick="toggleModel('ugt_only_embeddings')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="ugt_only_embeddings" id="ugt_only_embeddings" checked>
+                                <label class="form-check-label fw-bold" for="ugt_only_embeddings">
+                                    UGT + Embeddings Only
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #28a745, #20c997);">INDIVIDUAL</span>
+                        </div>
+                        <p class="text-muted mb-3">UGT + Transformers only (1170 features)</p>
+                        <div class="mt-2">
+                            <small class="text-success">
+                                <i class="fas fa-microscope me-1"></i>
+                                Testing isolated UGT framework impact
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- NETWORK-ENHANCED MODEL -->
+                <div class="col-md-6">
+                    <div class="model-card" id="networkEnhancedCard" onclick="toggleModel('network_enhanced')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="network_enhanced" id="network_enhanced">
+                                <label class="form-check-label fw-bold" for="network_enhanced">
+                                    Network Enhanced
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #6f42c1, #e83e8c);">NETWORK</span>
+                        </div>
+                        <p class="text-muted mb-3">Network + Transformers + Traditional (2172 features)</p>
+                        <div class="mt-2">
+                            <small class="text-primary">
+                                <i class="fas fa-project-diagram me-1"></i>
+                                Testing social network analysis impact
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FRAMEWORK-ENHANCED GROUP -->
+                <div class="col-md-6">
+                    <div class="model-card selected" id="ratEnhancedCard" onclick="toggleModel('rat_enhanced')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="rat_enhanced" id="rat_enhanced" checked>
+                                <label class="form-check-label fw-bold" for="rat_enhanced">
+                                    RAT Enhanced
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #ffc107, #fd7e14);">FRAMEWORK</span>
+                        </div>
+                        <p class="text-muted mb-3">RAT + Transformers + Traditional (2167 features)</p>
+                        <div class="mt-2">
+                            <small class="text-warning">
+                                <i class="fas fa-microscope me-1"></i>
+                                Testing RAT framework impact on performance
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="rctEnhancedCard" onclick="toggleModel('rct_enhanced')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="rct_enhanced" id="rct_enhanced" checked>
+                                <label class="form-check-label fw-bold" for="rct_enhanced">
+                                    RCT Enhanced
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #17a2b8, #20c997);">FRAMEWORK</span>
+                        </div>
+                        <p class="text-muted mb-3">RCT + Transformers + Traditional (2164 features)</p>
+                        <div class="mt-2">
+                            <small class="text-info">
+                                <i class="fas fa-microscope me-1"></i>
+                                Testing RCT framework impact on performance
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="ugtEnhancedCard" onclick="toggleModel('ugt_enhanced')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="ugt_enhanced" id="ugt_enhanced" checked>
+                                <label class="form-check-label fw-bold" for="ugt_enhanced">
+                                    UGT Enhanced
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #28a745, #20c997);">FRAMEWORK</span>
+                        </div>
+                        <p class="text-muted mb-3">UGT + Transformers + Traditional (2170 features)</p>
+                        <div class="mt-2">
+                            <small class="text-success">
+                                <i class="fas fa-microscope me-1"></i>
+                                Testing UGT framework impact on performance
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FULL INTEGRATION -->
+                <div class="col-md-6">
+                    <div class="model-card selected" id="fullFrameworkCard" onclick="toggleModel('full_framework')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="full_framework" id="full_framework" checked>
+                                <label class="form-check-label fw-bold" for="full_framework">
+                                    Full Framework
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #dc3545, #fd7e14);">COMPLETE</span>
+                        </div>
+                        <p class="text-muted mb-3">RAT+RCT+UGT + Transformers + Traditional (2197 features)</p>
+                        <div class="mt-2">
+                            <small class="text-danger">
+                                <i class="fas fa-crown me-1"></i>
+                                Complete integration: All frameworks + all features
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="model-card selected" id="combinedCard" onclick="toggleModel('combined')" style="border: 3px solid #28a745; box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="specialized_models" value="combined" id="combined_model" checked>
+                                <label class="form-check-label fw-bold" for="combined_model">
+                                    🏆 Combined Ensemble Model
+                                </label>
+                            </div>
+                            <span class="algorithm-badge" style="background: linear-gradient(45deg, #28a745, #20c997); color: white; font-weight: bold;">RECOMMENDED</span>
+                        </div>
+                        <p class="text-muted mb-3">
+                            <strong>Best performing model</strong> - combines ALL 6 ML algorithms + transformers + frameworks for maximum accuracy (85-93%)
+                        </p>
+                        <div class="mt-2">
+                            <small class="text-success">
+                                <i class="fas fa-crown me-1"></i>
+                                <strong>ALL features (~2,285 dims) + Ensemble methods + Best model selection</strong>
+                            </small>
+                            <br>
+                            <small class="text-muted mt-1">
+                                Uses voting & stacking classifiers with the best performers from traditional ML + frameworks
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Parameters -->
+        <div class="config-section">
+            <h3 class="mb-4">
+                <i class="fas fa-sliders-h me-2"></i>Training Parameters
+            </h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="parameter-card">
+                        <h5><i class="fas fa-percentage me-2"></i>Data Split Configuration</h5>
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <label for="train_size" class="form-label">Training Size (%)</label>
+                                <select class="form-select" name="train_size" id="train_size">
+                                    <option value="0.7">70% (Recommended)</option>
+                                    <option value="0.75">75%</option>
+                                    <option value="0.8" selected>80%</option>
+                                    <option value="0.85">85%</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label for="random_state" class="form-label">Random State</label>
+                                <input type="number" class="form-control" name="random_state" id="random_state" value="42" min="1" max="1000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="parameter-card">
+                        <h5><i class="fas fa-crosshairs me-2"></i>Cross-Validation</h5>
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <label for="cv_folds" class="form-label">CV Folds</label>
+                                <select class="form-select" name="cv_folds" id="cv_folds">
+                                    <option value="3">3-Fold</option>
+                                    <option value="5" selected>5-Fold (Recommended)</option>
+                                    <option value="10">10-Fold</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label for="scoring_metric" class="form-label">Scoring Metric</label>
+                                <select class="form-select" name="scoring_metric" id="scoring_metric">
+                                    <option value="accuracy" selected>Accuracy</option>
+                                    <option value="f1">F1-Score</option>
+                                    <option value="precision">Precision</option>
+                                    <option value="recall">Recall</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model-Specific Parameters -->
+        <div class="config-section">
+            <h3 class="mb-4">
+                <i class="fas fa-tools me-2"></i>Model-Specific Parameters
+            </h3>
+            
+            <!-- Logistic Regression Parameters -->
+            <div id="logistic_params" class="parameter-card">
+                <h5><i class="fas fa-chart-line me-2"></i>Logistic Regression Parameters</h5>
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <label for="lr_C" class="form-label">Regularization (C)</label>
+                        <select class="form-select" name="lr_C" id="lr_C">
+                            <option value="0.1">0.1</option>
+                            <option value="1.0" selected>1.0 (Default)</option>
+                            <option value="10.0">10.0</option>
+                            <option value="100.0">100.0</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="lr_solver" class="form-label">Solver</label>
+                        <select class="form-select" name="lr_solver" id="lr_solver">
+                            <option value="liblinear" selected>liblinear</option>
+                            <option value="lbfgs">lbfgs</option>
+                            <option value="saga">saga</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="lr_max_iter" class="form-label">Max Iterations</label>
+                        <input type="number" class="form-control" name="lr_max_iter" id="lr_max_iter" value="1000" min="100" max="5000">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Random Forest Parameters -->
+            <div id="rf_params" class="parameter-card" style="display: none;">
+                <h5><i class="fas fa-tree me-2"></i>Random Forest Parameters</h5>
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <label for="rf_n_estimators" class="form-label">Number of Trees</label>
+                        <select class="form-select" name="rf_n_estimators" id="rf_n_estimators">
+                            <option value="50">50</option>
+                            <option value="100" selected>100 (Default)</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="rf_max_depth" class="form-label">Max Depth</label>
+                        <select class="form-select" name="rf_max_depth" id="rf_max_depth">
+                            <option value="None" selected>None (No Limit)</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="rf_min_samples_split" class="form-label">Min Samples Split</label>
+                        <input type="number" class="form-control" name="rf_min_samples_split" id="rf_min_samples_split" value="2" min="2" max="20">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Neural Network Parameters -->
+            <div id="neural_network_params" class="parameter-card" style="display: none;">
+                <h5><i class="fas fa-network-wired me-2"></i>Neural Network Parameters</h5>
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <label for="nn_hidden_layers" class="form-label">Hidden Layer Sizes</label>
+                        <select class="form-select" name="nn_hidden_layers" id="nn_hidden_layers">
+                            <option value="(50,)">Single Layer (50)</option>
+                            <option value="(100,)" selected>Single Layer (100)</option>
+                            <option value="(100, 50)">Two Layers (100, 50)</option>
+                            <option value="(200, 100)">Two Layers (200, 100)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="nn_learning_rate" class="form-label">Learning Rate</label>
+                        <select class="form-select" name="nn_learning_rate" id="nn_learning_rate">
+                            <option value="constant" selected>Constant</option>
+                            <option value="adaptive">Adaptive</option>
+                            <option value="invscaling">Inverse Scaling</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="nn_alpha" class="form-label">Regularization (Alpha)</label>
+                        <select class="form-select" name="nn_alpha" id="nn_alpha">
+                            <option value="0.0001" selected>0.0001 (Default)</option>
+                            <option value="0.001">0.001</option>
+                            <option value="0.01">0.01</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label for="nn_max_iter" class="form-label">Max Iterations</label>
+                        <input type="number" class="form-control" name="nn_max_iter" id="nn_max_iter" value="500" min="100" max="2000" step="100">
+                        <small class="text-muted">Maximum number of training iterations</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="nn_solver" class="form-label">Solver</label>
+                        <select class="form-select" name="nn_solver" id="nn_solver">
+                            <option value="adam" selected>Adam (Recommended)</option>
+                            <option value="lbfgs">L-BFGS</option>
+                            <option value="sgd">SGD</option>
+                        </select>
+                        <small class="text-muted">Optimization algorithm</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Zero-Shot Classification Parameters -->
+            <div id="zero_shot_params" class="parameter-card" style="display: none;">
+                <h5><i class="fas fa-brain me-2"></i>Zero-Shot Classification Parameters</h5>
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <label for="zs_model" class="form-label">Model</label>
+                        <select class="form-select" name="zs_model" id="zs_model">
+                            <option value="facebook/bart-large-mnli" selected>BART-Large-MNLI (Recommended)</option>
+                            <option value="microsoft/DialoGPT-medium">DialoGPT-Medium</option>
+                            <option value="roberta-large-mnli">RoBERTa-Large-MNLI</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="zs_confidence_threshold" class="form-label">Confidence Threshold</label>
+                        <select class="form-select" name="zs_confidence_threshold" id="zs_confidence_threshold">
+                            <option value="0.5">0.5 (Lenient)</option>
+                            <option value="0.6">0.6</option>
+                            <option value="0.7" selected>0.7 (Recommended)</option>
+                            <option value="0.8">0.8 (Strict)</option>
+                            <option value="0.9">0.9 (Very Strict)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="zs_label_set" class="form-label">Label Set</label>
+                        <select class="form-select" name="zs_label_set" id="zs_label_set">
+                            <option value="binary" selected>Binary (Misinformation/Factual)</option>
+                            <option value="detailed">Detailed (Multiple Categories)</option>
+                            <option value="custom">Custom Labels</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="zs_kenyan_context" id="zs_kenyan_context" checked>
+                            <label class="form-check-label" for="zs_kenyan_context">
+                                Enable Kenyan Context Enhancement
+                            </label>
+                        </div>
+                        <small class="text-muted">Enhances detection with Kenyan political and cultural context</small>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="zs_multilingual" id="zs_multilingual" checked>
+                            <label class="form-check-label" for="zs_multilingual">
+                                Multilingual Processing
+                            </label>
+                        </div>
+                        <small class="text-muted">Handle English, Kiswahili, and mixed-language content</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Comparison Table -->
+        <div class="model-comparison">
+            <h3 class="mb-4">
+                <i class="fas fa-balance-scale me-2"></i>Model Comparison Guide
+            </h3>
+            
+            <div class="comparison-table">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Model</th>
+                            <th>Speed</th>
+                            <th>Interpretability</th>
+                            <th>Performance</th>
+                            <th>Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Logistic Regression</strong></td>
+                            <td><span class="badge bg-success">Fast</span></td>
+                            <td><span class="badge bg-success">High</span></td>
+                            <td><span class="badge bg-info">Good</span></td>
+                            <td>Linear relationships, feature importance</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Naive Bayes</strong></td>
+                            <td><span class="badge bg-success">Very Fast</span></td>
+                            <td><span class="badge bg-warning text-dark">Medium</span></td>
+                            <td><span class="badge bg-info">Good</span></td>
+                            <td>Text classification, small datasets</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Random Forest</strong></td>
+                            <td><span class="badge bg-warning text-dark">Medium</span></td>
+                            <td><span class="badge bg-warning text-dark">Medium</span></td>
+                            <td><span class="badge bg-success">Excellent</span></td>
+                            <td>Complex patterns, feature interactions</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Neural Network</strong></td>
+                            <td><span class="badge bg-warning text-dark">Medium</span></td>
+                            <td><span class="badge bg-danger">Low</span></td>
+                            <td><span class="badge bg-success">Excellent</span></td>
+                            <td>Non-linear patterns, complex relationships</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Zero-Shot Classification</strong></td>
+                            <td><span class="badge bg-danger">Slow</span></td>
+                            <td><span class="badge bg-danger">Low</span></td>
+                            <td><span class="badge bg-success">Excellent</span></td>
+                            <td>No training data, comparison baseline</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-configure text-white me-3" id="configureBtn">
+                <i class="fas fa-rocket me-2"></i>Begin Training
+            </button>
+            <a href="{{ url_for('feature_results', dataset_name=dataset_name) }}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-arrow-left me-2"></i>Back to Results
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Model card selection
+    document.querySelectorAll('.model-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const checkbox = this.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            updateCardSelection();
+            updateParameterVisibility();
+        });
+    });
+
+    // Update card visual selection
+    function updateCardSelection() {
+        document.querySelectorAll('.model-card').forEach(card => {
+            const checkbox = card.querySelector('input[type="checkbox"]');
+            if (checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+    }
+
+    // Show/hide model-specific parameters
+    function updateParameterVisibility() {
+        const logisticChecked = document.getElementById('logistic_regression').checked;
+        const rfChecked = document.getElementById('random_forest').checked;
+        const nnChecked = document.getElementById('neural_network').checked;
+        const zeroShotChecked = document.getElementById('zero_shot').checked;
+        
+        document.getElementById('logistic_params').style.display = logisticChecked ? 'block' : 'none';
+        document.getElementById('rf_params').style.display = rfChecked ? 'block' : 'none';
+        document.getElementById('neural_network_params').style.display = nnChecked ? 'block' : 'none';
+        document.getElementById('zero_shot_params').style.display = zeroShotChecked ? 'block' : 'none';
+    }
+
+    // Toggle model function for onclick handlers
+    function toggleModel(modelType) {
+        const cardMap = {
+            'lr': 'logistic_regression',
+            'nb': 'naive_bayes', 
+            'gb': 'gradient_boosting',
+            'svm': 'svm',
+            'nn': 'neural_network',
+            'rf': 'random_forest',
+            'zeroShot': 'zero_shot',
+            // Updated framework combinations for comparative analysis
+            'baseline_traditional': 'baseline_traditional',
+            'transformer_only': 'transformer_only',
+            'rat_enhanced': 'rat_enhanced',
+            'rct_enhanced': 'rct_enhanced',
+            'ugt_enhanced': 'ugt_enhanced',
+            'full_framework': 'full_framework'
+        };
+        
+        const checkboxId = cardMap[modelType] || modelType;
+        const checkbox = document.getElementById(checkboxId);
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            updateCardSelection();
+            updateParameterVisibility();
+        }
+    }
+
+    // Initialize card selection and parameter visibility
+    updateCardSelection();
+    updateParameterVisibility();
+
+    // Form submission
+    document.getElementById('configForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Check if at least one model is selected
+        const traditionalModels = document.querySelectorAll('input[name="selected_models"]:checked');
+        const specializedModels = document.querySelectorAll('input[name="specialized_models"]:checked');
+        
+        if (traditionalModels.length === 0 && specializedModels.length === 0) {
+            alert('Please select at least one machine learning model (traditional or specialized).');
+            return;
+        }
+
+        // Show loading state
+        const configureBtn = document.getElementById('configureBtn');
+        configureBtn.disabled = true;
+        configureBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Configuring Models...';
+        
+        // Submit form
+        this.submit();
+    });
+
+    // Real-time parameter validation
+    document.getElementById('train_size').addEventListener('change', function() {
+        const testSize = (1 - parseFloat(this.value)) * 100;
+        const helpText = this.parentNode.querySelector('.form-text') || document.createElement('small');
+        helpText.className = 'form-text text-muted';
+        helpText.textContent = `Test size will be ${testSize.toFixed(0)}%`;
+        if (!this.parentNode.querySelector('.form-text')) {
+            this.parentNode.appendChild(helpText);
+        }
+    });
+
+    // Toggle model selection
+    function toggleModel(modelType) {
+        const card = document.getElementById(modelType + 'Card');
+        let checkboxId;
+        
+        // Handle different checkbox ID patterns
+        switch(modelType) {
+            case 'lr': checkboxId = 'logistic_regression'; break;
+            case 'nb': checkboxId = 'naive_bayes'; break;
+            case 'gb': checkboxId = 'gradient_boosting'; break;
+            case 'svm': checkboxId = 'svm'; break;
+            case 'nn': checkboxId = 'neural_network'; break;
+            case 'rf': checkboxId = 'random_forest'; break;
+            default: checkboxId = modelType;
+        }
+        
+        const checkbox = document.getElementById(checkboxId);
+        
+        card.classList.toggle('selected');
+        checkbox.checked = card.classList.contains('selected');
+        
+        updateParameterVisibility();
+    }
+</script>
+{% endblock %}

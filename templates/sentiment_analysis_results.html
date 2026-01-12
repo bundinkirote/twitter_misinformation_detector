@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block title %}Sentiment Analysis Results - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        margin: 40px auto;
+        padding: 40px;
+        max-width: 1200px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding: 0 20px;
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #6c757d;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+    }
+    .step.completed .step-number {
+        background: #28a745;
+    }
+    .step.active .step-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .sentiment-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin: 15px 0;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    .sentiment-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        border: 2px solid #e9ecef;
+    }
+    .sample-text {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 12px;
+        margin: 8px 0;
+        border-left: 4px solid #667eea;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: 500;
+    }
+    .kenyan-indicator {
+        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+        color: #333;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Progress Steps -->
+    <div class="progress-steps">
+        <div class="step completed">
+            <div class="step-number">1</div>
+            <small>Upload Dataset</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">2</div>
+            <small>Data Overview</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">3</div>
+            <small>Language Detection</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">4</div>
+            <small>Sentiment Analysis</small>
+        </div>
+        <div class="step active">
+            <div class="step-number">5</div>
+            <small>Feature Engineering</small>
+        </div>
+        <div class="step">
+            <div class="step-number">6</div>
+            <small>Model Training</small>
+        </div>
+        <div class="step">
+            <div class="step-number">7</div>
+            <small>Results</small>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <h1 class="display-4 text-primary">
+            <i class="fas fa-heart me-3"></i>Sentiment Analysis Results
+        </h1>
+        <p class="lead text-muted">Emotional tone and sentiment patterns in {{ dataset_name }}</p>
+    </div>
+
+    <!-- Sentiment Analysis Insights -->
+    {% if insights %}
+        {% include 'insights_component.html' %}
+    {% endif %}
+
+    <!-- Summary Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-primary">{{ results.total_samples_analyzed or 0 }}</h3>
+                <p class="mb-0">Samples Analyzed</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-success">{{ "%.1f"|format((results.sentiment_distribution.positive or 0) * 100) }}%</h3>
+                <p class="mb-0">Positive Sentiment</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-danger">{{ "%.1f"|format((results.sentiment_distribution.negative or 0) * 100) }}%</h3>
+                <p class="mb-0">Negative Sentiment</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-warning">{{ "%.1f"|format(results.high_emotion_percentage or 0) }}%</h3>
+                <p class="mb-0">High-Emotion Content</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sentiment Distribution Chart -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="sentiment-card">
+                <h5><i class="fas fa-chart-pie me-2"></i>Sentiment Distribution</h5>
+                <canvas id="sentimentChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="sentiment-card">
+                <h5><i class="fas fa-brain me-2"></i>Analysis Method</h5>
+                <div class="mt-3">
+                    <p><strong>Primary Method:</strong> {{ results.method_counts.keys() | list | first if results.method_counts else 'Transformer' }}</p>
+                    <p><strong>Language Context:</strong> {{ results.dominant_language_used or 'Mixed' }}</p>
+                    <p><strong>Kenyan Context Enhanced:</strong> {{ results.kenyan_context_enhanced or 0 }} samples</p>
+                </div>
+                
+                {% if results.theoretical_insights %}
+                <div class="mt-3 pt-3 border-top">
+                    <h6>Theoretical Insights</h6>
+                    <small class="text-muted">
+                        <strong>Emotional Benefit Score:</strong> {{ "%.2f"|format(results.theoretical_insights.rct_emotional_benefit_score or 0) }}<br>
+                        <strong>Manipulation Risk:</strong> {{ "%.2f"|format(results.theoretical_insights.emotional_manipulation_risk or 0) }}
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sample Sentiments -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="sentiment-card">
+                <h6><i class="fas fa-smile text-success me-2"></i>Positive Samples</h6>
+                <div id="positiveSamples">
+                    {% if results.sample_sentiments and results.sample_sentiments.positive %}
+                        {% for sample in results.sample_sentiments.positive[:3] %}
+                        <div class="sample-text">
+                            <small>"{{ sample }}"</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center small">No positive samples found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="sentiment-card">
+                <h6><i class="fas fa-frown text-danger me-2"></i>Negative Samples</h6>
+                <div id="negativeSamples">
+                    {% if results.sample_sentiments and results.sample_sentiments.negative %}
+                        {% for sample in results.sample_sentiments.negative[:3] %}
+                        <div class="sample-text">
+                            <small>"{{ sample }}"</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center small">No negative samples found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="sentiment-card">
+                <h6><i class="fas fa-meh text-secondary me-2"></i>Neutral Samples</h6>
+                <div id="neutralSamples">
+                    {% if results.sample_sentiments and results.sample_sentiments.neutral %}
+                        {% for sample in results.sample_sentiments.neutral[:3] %}
+                        <div class="sample-text">
+                            <small>"{{ sample }}"</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center small">No neutral samples found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- High-Emotion Content Analysis -->
+    {% if results.high_emotion_content_count and results.high_emotion_content_count > 0 %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="sentiment-card">
+                <h5><i class="fas fa-fire text-danger me-2"></i>High-Emotion Content Analysis</h5>
+                <p class="text-muted">Content with high emotional intensity that may be susceptible to manipulation</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="metric-card">
+                            <h4 class="text-danger">{{ results.high_emotion_content_count }}</h4>
+                            <p class="mb-0">High-Emotion Items</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="metric-card">
+                            <h4 class="text-warning">{{ "%.1f"|format(results.high_emotion_percentage) }}%</h4>
+                            <p class="mb-0">of Total Dataset</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        High-emotion content is identified by sentiment confidence > 0.8 and non-neutral sentiment.
+                        This content may be more susceptible to misinformation spread according to RCT theory.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Kenyan Context Enhancement -->
+    {% if results.kenyan_context_enhanced and results.kenyan_context_enhanced > 0 %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="sentiment-card">
+                <h5><i class="fas fa-flag text-warning me-2"></i>Kenyan Context Enhancement</h5>
+                <p class="text-muted">Sentiment analysis enhanced with Kenyan political and cultural context</p>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <h4 class="text-warning">{{ results.kenyan_context_enhanced }}</h4>
+                            <p class="mb-0">Context-Enhanced Samples</p>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="mt-2">
+                            <span class="kenyan-indicator me-2">Political Sentiment Markers</span>
+                            <span class="kenyan-indicator me-2">Kiswahili Sentiment Words</span>
+                            <span class="kenyan-indicator">Cultural Context Weighting</span>
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            Enhanced samples had their sentiment scores adjusted based on Kenyan-specific indicators
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Next Steps -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="sentiment-card text-center">
+                <i class="fas fa-search-plus text-info mb-3" style="font-size: 2rem;"></i>
+                <h5>Fact-Check Validation</h5>
+                <p class="text-muted">Validate sentiment patterns against known fact-checked claims</p>
+                <button type="button" class="btn btn-outline-info" onclick="proceedToFactCheck()">
+                    <i class="fas fa-shield-alt me-2"></i>Validate Claims
+                </button>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="sentiment-card text-center">
+                <i class="fas fa-cogs text-primary mb-3" style="font-size: 2rem;"></i>
+                <h5>Feature Engineering</h5>
+                <p class="text-muted">Extract comprehensive features including sentiment insights</p>
+                <button type="button" class="btn btn-primary" onclick="proceedToFeatures()">
+                    <i class="fas fa-arrow-right me-2"></i>Extract Features
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    createSentimentChart();
+});
+
+function createSentimentChart() {
+    const ctx = document.getElementById('sentimentChart').getContext('2d');
+    
+    const sentimentData = {
+        positive: {{ (results.sentiment_distribution.positive or 0) * 100 }},
+        negative: {{ (results.sentiment_distribution.negative or 0) * 100 }},
+        neutral: {{ (results.sentiment_distribution.neutral or 0) * 100 }}
+    };
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Positive', 'Negative', 'Neutral'],
+            datasets: [{
+                data: [sentimentData.positive, sentimentData.negative, sentimentData.neutral],
+                backgroundColor: [
+                    '#28a745',
+                    '#dc3545',
+                    '#6c757d'
+                ],
+                borderWidth: 3,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+}
+
+function proceedToFactCheck() {
+    window.location.href = `/fact_check_validation/{{ dataset_name }}`;
+}
+
+function proceedToFeatures() {
+    window.location.href = `/feature_extraction/{{ dataset_name }}`;
+}
+</script>
+{% endblock %}

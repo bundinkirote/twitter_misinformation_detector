@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Framework Hyperparameter Results - ML Pipeline</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin: 40px auto;
+            padding: 40px;
+            max-width: 1400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .progress-step {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #6c757d;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+        .step.active .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .step.completed .step-number {
+            background: #28a745;
+        }
+        .step::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: #dee2e6;
+            z-index: -1;
+        }
+        .step:last-child::after {
+            display: none;
+        }
+        .training-status {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .model-result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 15px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+        }
+        .metric-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 5px;
+            display: inline-block;
+        }
+        .best-model-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 500;
+        }
+        .tuning-log {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .hyperparams-table {
+            font-size: 14px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Progress Steps -->
+        <div class="progress-step">
+            <div class="step completed">
+                <div class="step-number">1</div>
+                <small>Upload Dataset</small>
+            </div>
+            <div class="step completed">
+                <div class="step-number">2</div>
+                <small>Language Detection</small>
+            </div>
+            <div class="step completed">
+                <div class="step-number">3</div>
+                <small>Feature Extraction</small>
+            </div>
+            <div class="step completed">
+                <div class="step-number">4</div>
+                <small>Model Configuration</small>
+            </div>
+            <div class="step completed">
+                <div class="step-number">5</div>
+                <small>Hyperparameter Tuning</small>
+            </div>
+            <div class="step active">
+                <div class="step-number">6</div>
+                <small>Results</small>
+            </div>
+        </div>
+
+        <div class="text-center mb-4">
+            <h1 class="display-4 text-primary">
+                <i class="fas fa-cogs me-3"></i>Unified Framework Hyperparameter Results
+            </h1>
+            <p class="lead text-muted">Comprehensive framework comparison with optimized hyperparameters</p>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Unified Framework Analysis:</strong> This shows hyperparameter tuning results across all framework combinations (RAT, RCT, UGT) with baseline and transformer comparisons.
+            </div>
+        </div>
+
+        <!-- Hyperparameter Optimization Insights -->
+        {% if insights %}
+            {% include 'insights_component.html' %}
+        {% endif %}
+
+        <!-- Training Status -->
+        <div class="training-status" id="trainingStatus">
+            <div class="d-flex align-items-center justify-content-center mb-3">
+                <div class="spinner-border text-primary me-3" role="status" id="trainingSpinner">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div>
+                    <h4 class="mb-0">Training Models...</h4>
+                    <p class="text-muted mb-0" id="statusMessage">Initializing hyperparameter tuning...</p>
+                </div>
+            </div>
+            <div class="progress mb-3">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" style="width: 0%" id="trainingProgress"></div>
+            </div>
+            <div class="row">
+                <div class="col-md-3 text-center">
+                    <div class="fw-bold text-primary" id="currentModel">-</div>
+                    <small class="text-muted">Current Model</small>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="fw-bold text-success" id="completedModels">0</div>
+                    <small class="text-muted">Completed</small>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="fw-bold text-warning" id="bestScore">-</div>
+                    <small class="text-muted">Best Score</small>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="fw-bold text-info" id="elapsedTime">0:00</div>
+                    <small class="text-muted">Elapsed Time</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Log -->
+        <div class="card border-0 shadow-sm mb-4" id="logSection" style="display: none;">
+            <div class="card-header">
+                <h5><i class="fas fa-terminal me-2"></i>Training Log</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="tuning-log" id="trainingLog"></div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" style="display: none;">
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <h2 class="text-primary" id="totalModels">0</h2>
+                            <p class="mb-0">Models Trained</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <h2 class="text-success" id="bestF1Score">0.000</h2>
+                            <p class="mb-0">Best F1-Score</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <h2 class="text-warning" id="totalTime">0m</h2>
+                            <p class="mb-0">Total Time</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <h2 class="text-info" id="cvFolds">5</h2>
+                            <p class="mb-0">CV Folds Used</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Comparison Chart -->
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-bar me-2"></i>Model Performance Comparison</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="performanceChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header">
+                            <h5><i class="fas fa-trophy me-2"></i>Best Model</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <h3 class="text-primary" id="bestModelName">Logistic Regression</h3>
+                            <div class="mt-3">
+                                <div class="metric-badge">F1: <span id="bestModelF1">0.847</span></div>
+                                <div class="metric-badge">Accuracy: <span id="bestModelAcc">0.851</span></div>
+                                <div class="metric-badge">AUC: <span id="bestModelAuc">0.924</span></div>
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm mt-3" onclick="showBestModelDetails()">
+                                <i class="fas fa-info-circle me-2"></i>View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Results -->
+            <div class="row">
+                <div class="col-md-12">
+                    <h4><i class="fas fa-list me-2"></i>Detailed Results</h4>
+                    <div id="modelResults"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-5" id="actionButtons" style="display: none;">
+            <button type="button" class="btn btn-outline-secondary me-3" onclick="saveConfig()">
+                <i class="fas fa-save me-2"></i>Save Configuration
+            </button>
+            <button type="button" class="btn btn-outline-primary me-3" onclick="exportResults()">
+                <i class="fas fa-download me-2"></i>Export Results
+            </button>
+            <button type="button" class="btn btn-primary btn-lg" onclick="proceedToSummary()">
+                <i class="fas fa-arrow-right me-2"></i>View Complete Model Summary
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let datasetName = "{{ dataset_name }}";
+        let trainingConfig = {};
+        let trainingResults = {};
+        let trainingStartTime = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load training configuration from localStorage
+            const savedConfig = localStorage.getItem('trainingConfig');
+            if (savedConfig) {
+                trainingConfig = JSON.parse(savedConfig);
+            }
+            
+            // Load results if available
+            loadResults();
+        });
+
+        async function loadResults() {
+            // Check if we have results from the backend
+            const backendResults = {{ template_results | tojson | safe }};
+            
+            if (backendResults && backendResults.success) {
+                trainingResults = backendResults;
+                showResults();
+                return;
+            }
+            
+            const results = {{ results | tojson | safe }};
+            
+            if (results && Object.keys(results).length > 0) {
+                // We have results, display them
+                displayResults(results);
+            } else {
+                // No results yet, show loading state
+                document.getElementById('trainingStatus').innerHTML = `
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <h4>Processing Results...</h4>
+                        <p class="text-muted">Please wait while we load your hyperparameter optimization results.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayResults(results) {
+            // Hide loading status
+            document.getElementById('trainingStatus').style.display = 'none';
+            
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('actionButtons').style.display = 'block';
+            
+            // Update summary cards
+            const modelCount = Object.keys(results.models || {}).length;
+            document.getElementById('totalModels').textContent = modelCount;
+            
+            // Find best model
+            let bestModel = null;
+            let bestScore = 0;
+            
+            for (const [modelName, modelResult] of Object.entries(results.models || {})) {
+                if (modelResult.test_metrics && modelResult.test_metrics.f1_score > bestScore) {
+                    bestScore = modelResult.test_metrics.f1_score;
+                    bestModel = { name: modelName, result: modelResult };
+                }
+            }
+            
+            if (bestModel) {
+                document.getElementById('bestF1Score').textContent = bestScore.toFixed(3);
+                document.getElementById('bestModelName').textContent = formatModelName(bestModel.name);
+                document.getElementById('bestModelF1').textContent = bestModel.result.test_metrics.f1_score.toFixed(3);
+                document.getElementById('bestModelAcc').textContent = bestModel.result.test_metrics.accuracy.toFixed(3);
+            }
+            
+            // Display detailed results
+            displayDetailedResults(results.models || {});
+            
+            // Create performance chart
+            createPerformanceChart(results.models || {});
+        }
+
+        function formatModelName(modelName) {
+            const nameMap = {
+                'logistic_regression': 'Logistic Regression',
+                'naive_bayes': 'Naive Bayes',
+                'gradient_boosting': 'Gradient Boosting',
+                'svm': 'Support Vector Machine',
+                'neural_network': 'Neural Network',
+                'random_forest': 'Random Forest'
+            };
+            return nameMap[modelName] || modelName;
+        }
+
+        function displayDetailedResults(models) {
+            const resultsContainer = document.getElementById('modelResults');
+            resultsContainer.innerHTML = '';
+            
+            for (const [modelName, modelResult] of Object.entries(models)) {
+                if (modelResult.error) {
+                    // Show error card
+                    const errorCard = `
+                        <div class="model-result-card border-danger">
+                            <h5 class="text-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>${formatModelName(modelName)}
+                            </h5>
+                            <p class="text-danger">Error: ${modelResult.error}</p>
+                        </div>
+                    `;
+                    resultsContainer.innerHTML += errorCard;
+                } else {
+                    // Show results card
+                    const metrics = modelResult.test_metrics || {};
+                    const bestParams = modelResult.best_params || {};
+                    
+                    const resultCard = `
+                        <div class="model-result-card">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5>${formatModelName(modelName)}</h5>
+                                ${modelResult.test_metrics && modelResult.test_metrics.f1_score === bestScore ? '<span class="best-model-badge">Best Model</span>' : ''}
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <div class="metric-badge">F1: ${(metrics.f1_score || 0).toFixed(3)}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="metric-badge">Accuracy: ${(metrics.accuracy || 0).toFixed(3)}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="metric-badge">Precision: ${(metrics.precision || 0).toFixed(3)}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="metric-badge">Recall: ${(metrics.recall || 0).toFixed(3)}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="hyperparams-table">
+                                <h6>Best Hyperparameters:</h6>
+                                <div class="row">
+                                    ${Object.entries(bestParams).map(([param, value]) => `
+                                        <div class="col-md-6">
+                                            <small><strong>${param}:</strong> ${value}</small>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    resultsContainer.innerHTML += resultCard;
+                }
+            }
+        }
+
+        function createPerformanceChart(models) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            const modelNames = Object.keys(models).map(name => formatModelName(name));
+            const f1Scores = Object.values(models).map(result => result.test_metrics ? result.test_metrics.f1_score : 0);
+            const accuracyScores = Object.values(models).map(result => result.test_metrics ? result.test_metrics.accuracy : 0);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: modelNames,
+                    datasets: [{
+                        label: 'F1-Score',
+                        data: f1Scores,
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Accuracy',
+                        data: accuracyScores,
+                        backgroundColor: 'rgba(118, 75, 162, 0.8)',
+                        borderColor: 'rgba(118, 75, 162, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        async function startTraining() {
+            trainingStartTime = new Date();
+            document.getElementById('logSection').style.display = 'block';
+            
+            // Initialize progress tracking
+            let currentStep = 0;
+            const totalSteps = trainingConfig.models ? trainingConfig.models.length * 3 : 6; // Estimate
+            
+            // Simulate training progress
+            const progressInterval = setInterval(() => {
+                currentStep++;
+                const progress = Math.min((currentStep / totalSteps) * 100, 95);
+                document.getElementById('trainingProgress').style.width = progress + '%';
+                
+                // Update elapsed time
+                const elapsed = Math.floor((new Date() - trainingStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('elapsedTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+
+            try {
+                // Start model training
+                const response = await fetch(`/api/train_models/${datasetName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(trainingConfig)
+                });
+
+                const result = await response.json();
+                
+                clearInterval(progressInterval);
+                
+                if (result.success) {
+                    trainingResults = result.data;
+                    showResults();
+                } else {
+                    throw new Error(result.error || 'Training failed');
+                }
+                
+            } catch (error) {
+                clearInterval(progressInterval);
+                showTrainingError(error.message);
+            }
+        }
+
+        function showResults() {
+            // Hide training status
+            document.getElementById('trainingStatus').style.display = 'none';
+            
+            // Show results
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('actionButtons').style.display = 'block';
+
+            // Update summary statistics
+            const results = trainingResults.results || {};
+            const modelCount = Object.keys(results).length;
+            
+            document.getElementById('totalModels').textContent = modelCount;
+            
+            // Find best model
+            let bestModel = null;
+            let bestF1 = 0;
+            
+            for (const [modelName, metrics] of Object.entries(results)) {
+                if (metrics.f1_score > bestF1) {
+                    bestF1 = metrics.f1_score;
+                    bestModel = modelName;
+                }
+            }
+
+            document.getElementById('bestF1Score').textContent = bestF1.toFixed(3);
+            document.getElementById('bestModelName').textContent = bestModel ? bestModel.replace('_', ' ').toUpperCase() : 'Unknown';
+            document.getElementById('bestModelF1').textContent = bestF1.toFixed(3);
+            
+            if (bestModel && results[bestModel]) {
+                document.getElementById('bestModelAcc').textContent = results[bestModel].accuracy.toFixed(3);
+                document.getElementById('bestModelAuc').textContent = results[bestModel].roc_auc.toFixed(3);
+            }
+
+            // Calculate total time
+            const totalMinutes = Math.ceil(trainingResults.training_time / 60);
+            document.getElementById('totalTime').textContent = totalMinutes + 'm';
+
+            // Create performance chart
+            createPerformanceChart();
+
+            // Display detailed results
+            displayDetailedResults();
+        }
+
+        function createPerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            const results = trainingResults.results || {};
+            
+            const labels = Object.keys(results).map(name => name.replace('_', ' ').toUpperCase());
+            const f1Scores = Object.values(results).map(r => r.f1_score);
+            const accuracies = Object.values(results).map(r => r.accuracy);
+            const aucs = Object.values(results).map(r => r.roc_auc);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'F1-Score',
+                            data: f1Scores,
+                            backgroundColor: '#667eea',
+                            borderRadius: 5
+                        },
+                        {
+                            label: 'Accuracy',
+                            data: accuracies,
+                            backgroundColor: '#764ba2',
+                            borderRadius: 5
+                        },
+                        {
+                            label: 'ROC AUC',
+                            data: aucs,
+                            backgroundColor: '#f093fb',
+                            borderRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1.0
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayDetailedResults() {
+            const results = trainingResults.results || {};
+            const container = document.getElementById('modelResults');
+            
+            container.innerHTML = Object.entries(results).map(([modelName, metrics]) => `
+                <div class="model-result-card">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="mb-0">${modelName.replace('_', ' ').toUpperCase()}</h5>
+                        ${modelName === trainingResults.best_model ? '<span class="best-model-badge">BEST MODEL</span>' : ''}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="row">
+                                <div class="col-md-3 text-center">
+                                    <div class="fw-bold text-primary">${metrics.accuracy.toFixed(3)}</div>
+                                    <small class="text-muted">Accuracy</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="fw-bold text-success">${metrics.precision.toFixed(3)}</div>
+                                    <small class="text-muted">Precision</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="fw-bold text-warning">${metrics.recall.toFixed(3)}</div>
+                                    <small class="text-muted">Recall</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="fw-bold text-info">${metrics.f1_score.toFixed(3)}</div>
+                                    <small class="text-muted">F1-Score</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="hyperparams-table">
+                                <small><strong>Best Parameters:</strong><br>
+                                ${getHyperparametersText(modelName)}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getHyperparametersText(modelName) {
+            // Return best hyperparameters based on model type
+            const paramMap = {
+                'logistic_regression': `C: ${trainingConfig.logistic_regression?.C || 1.0}<br>Penalty: ${trainingConfig.logistic_regression?.penalty || 'l2'}`,
+                'random_forest': `N Estimators: ${trainingConfig.random_forest?.n_estimators || 100}<br>Max Depth: ${trainingConfig.random_forest?.max_depth || 10}`,
+                'gradient_boosting': `Learning Rate: ${trainingConfig.gradient_boosting?.learning_rate || 0.1}<br>N Estimators: ${trainingConfig.gradient_boosting?.n_estimators || 100}`,
+                'svm': `C: ${trainingConfig.svm?.C || 1.0}<br>Kernel: ${trainingConfig.svm?.kernel || 'rbf'}`
+            };
+            
+            return paramMap[modelName] || 'Default parameters';
+        }
+
+        function showTrainingError(message) {
+            document.getElementById('trainingStatus').innerHTML = `
+                <div class="alert alert-danger">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Training Failed</h5>
+                    <p class="mb-3">${message}</p>
+                    <button class="btn btn-outline-danger" onclick="retryTraining()">
+                        <i class="fas fa-redo me-2"></i>Retry Training
+                    </button>
+                </div>
+            `;
+        }
+
+        function retryTraining() {
+            location.reload();
+        }
+
+        function saveConfig() {
+            // Save training configuration as JSON
+            const configBlob = new Blob([JSON.stringify(trainingConfig, null, 2)], {
+                type: 'application/json'
+            });
+            const url = URL.createObjectURL(configBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${datasetName}_training_config.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportResults() {
+            // Export results as JSON
+            const resultsBlob = new Blob([JSON.stringify(trainingResults, null, 2)], {
+                type: 'application/json'
+            });
+            const url = URL.createObjectURL(resultsBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${datasetName}_training_results.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function proceedToSummary() {
+            window.location.href = `/model_summary/${datasetName}`;
+        }
+
+        function showBestModelDetails() {
+            // Could open a modal with detailed best model information
+            alert('Best model details would be shown in a detailed modal here.');
+        }
+
+        // Add training log simulation
+        function addLogEntry(message) {
+            const log = document.getElementById('trainingLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Simulate log entries during training
+        setTimeout(() => addLogEntry('Starting hyperparameter tuning...'), 1000);
+        setTimeout(() => addLogEntry('Loading dataset and features...'), 2000);
+        setTimeout(() => addLogEntry('Initializing cross-validation...'), 3000);
+        setTimeout(() => addLogEntry('Training Logistic Regression models...'), 5000);
+        setTimeout(() => addLogEntry('Training Random Forest models...'), 8000);
+        setTimeout(() => addLogEntry('Evaluating model performance...'), 12000);
+        setTimeout(() => addLogEntry('Selecting best hyperparameters...'), 15000);
+        setTimeout(() => addLogEntry('Training complete!'), 18000);
+    </script>
+</body>
+</html>

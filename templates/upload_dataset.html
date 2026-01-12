@@ -1,0 +1,583 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Dataset - Misinformation Detection System{% endblock %}
+
+{% block extra_css %}
+<style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin: 40px auto;
+            padding: 40px;
+            max-width: 900px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .upload-area {
+            border: 3px dashed #ced4da;
+            border-radius: 20px;
+            padding: 80px 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            margin: 30px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+        
+        .upload-area:hover::before,
+        .upload-area.dragover::before {
+            opacity: 1;
+            animation: shimmer 2s infinite;
+        }
+        
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover .upload-icon {
+            transform: scale(1.1);
+            color: var(--secondary-color);
+        }
+        
+        .btn-upload {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-upload:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        
+        .file-info {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid var(--primary-color);
+        }
+        
+        .progress-container {
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .progress {
+            height: 10px;
+            border-radius: 10px;
+            background: #e9ecef;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .status-message {
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: white !important;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            color: #f093fb !important;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .auto-name-display {
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4f1d4 100%);
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .loading-animation {
+            display: none;
+        }
+        
+        .loading-animation.show {
+            display: block;
+        }
+        
+        .dataset-card {
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .dataset-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+        
+        .dataset-info {
+            font-size: 0.85rem;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="main-container">
+            <div class="text-center mb-4">
+                <h1>
+                    <i class="fas fa-upload text-primary me-3"></i>
+                    Upload Training Dataset
+                </h1>
+                <p class="lead text-muted">
+                    Upload your labeled data to train a new misinformation detection model
+                </p>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Existing Datasets Section -->
+            {% if existing_datasets %}
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5><i class="fas fa-database me-2"></i>Load Existing Dataset</h5>
+                    <small class="text-muted">Select a previously uploaded dataset to continue working with it</small>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for dataset in existing_datasets %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card dataset-card h-100" style="cursor: pointer; transition: all 0.3s ease;" 
+                                 onclick="loadExistingDataset('{{ dataset.name }}')">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-folder me-2 text-primary"></i>
+                                        {{ dataset.name }}
+                                    </h6>
+                                    <div class="dataset-info">
+                                        {% if dataset.get('total_samples') %}
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-chart-bar me-1"></i>
+                                            {{ dataset.total_samples }} samples
+                                        </small>
+                                        {% endif %}
+                                        {% if dataset.get('created') %}
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ dataset.created[:10] }}
+                                        </small>
+                                        {% endif %}
+                                        <small class="badge bg-{{ 'success' if dataset.get('status') == 'processed' else 'secondary' }} mt-2">
+                                            {{ dataset.get('status', 'unknown').title() }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Divider -->
+            <div class="text-center my-4">
+                <span class="badge bg-light text-dark px-3 py-2">OR</span>
+            </div>
+            {% endif %}
+
+            <!-- Auto-generated Dataset Name Display -->
+            <div class="auto-name-display" id="datasetNameDisplay" style="display: none;">
+                <h6><i class="fas fa-tag me-2"></i>Auto-Generated Dataset Name</h6>
+                <h4 class="text-success mb-0" id="generatedName"></h4>
+            </div>
+
+            <!-- Upload Form -->
+            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <h3 class="mb-3">Drag and Drop Your Dataset Here</h3>
+                    <p class="text-muted mb-4">or click to browse your files</p>
+                    <input type="file" class="form-control d-none" id="dataset" name="dataset" 
+                           accept=".csv,.xlsx" required>
+                    <input type="hidden" id="dataset_name" name="dataset_name" value="">
+                    
+                    <div class="mt-4">
+                        <span class="badge bg-info me-2">CSV</span>
+                        <span class="badge bg-info">Excel (.xlsx)</span>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Ensure your data has 'text' and 'label' columns (0=legitimate, 1=misinformation)
+                        </small>
+                    </div>
+                </div>
+
+                <!-- File Information -->
+                <div id="fileInfo" class="file-info" style="display: none;">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6><i class="fas fa-file-alt me-2"></i>Selected File</h6>
+                            <p class="mb-1"><strong id="fileName"></strong></p>
+                            <small class="text-muted" id="fileSize"></small>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearFile()">
+                                <i class="fas fa-times me-1"></i>Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Button -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-upload text-white" id="uploadBtn" disabled>
+                        <i class="fas fa-rocket me-2"></i>
+                        Process & Train Model
+                    </button>
+                </div>
+            </form>
+
+            <!-- Progress Section -->
+            <div id="progressSection" class="progress-container" style="display: none;">
+                <h5><i class="fas fa-cogs me-2"></i>Processing Dataset...</h5>
+                <div class="progress mb-3">
+                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                </div>
+                <p class="text-muted mb-0" id="progressText">Initializing...</p>
+                
+                <div class="loading-animation mt-3" id="loadingAnimation">
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Processing...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="statusContainer"></div>
+
+            <!-- Dataset Requirements -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h5><i class="fas fa-clipboard-list me-2"></i>Dataset Requirements</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Required Columns:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i><code>text</code> - Tweet/post content</li>
+                                <li><i class="fas fa-check text-success me-2"></i><code>label</code> - 0 (legitimate) or 1 (misinformation)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Optional Columns:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-plus text-info me-2"></i><code>user_followers</code> - Follower count</li>
+                                <li><i class="fas fa-plus text-info me-2"></i><code>retweet_count</code> - Retweet count</li>
+                                <li><i class="fas fa-plus text-info me-2"></i><code>like_count</code> - Like count</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('dataset');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const progressSection = document.getElementById('progressSection');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const statusContainer = document.getElementById('statusContainer');
+        const datasetNameDisplay = document.getElementById('datasetNameDisplay');
+        const generatedName = document.getElementById('generatedName');
+        const datasetNameInput = document.getElementById('dataset_name');
+
+        // Generate automatic dataset name
+        function generateDatasetName() {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const randomId = Math.random().toString(36).substring(2, 8);
+            return `dataset_${timestamp}_${randomId}`;
+        }
+
+        // File upload handling
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        }
+
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                // Generate and display dataset name
+                const autoName = generateDatasetName();
+                datasetNameInput.value = autoName;
+                generatedName.textContent = autoName;
+                datasetNameDisplay.style.display = 'block';
+                
+                // Display file info
+                fileName.textContent = file.name;
+                fileSize.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                fileInfo.style.display = 'block';
+                uploadBtn.disabled = false;
+                
+                // Hide upload area partially
+                uploadArea.style.padding = '30px';
+                uploadArea.querySelector('h3').style.display = 'none';
+                uploadArea.querySelector('p').style.display = 'none';
+            }
+        }
+
+        function clearFile() {
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            datasetNameDisplay.style.display = 'none';
+            uploadBtn.disabled = true;
+            uploadArea.style.padding = '80px 40px';
+            uploadArea.querySelector('h3').style.display = 'block';
+            uploadArea.querySelector('p').style.display = 'block';
+        }
+
+        // Form submission
+        uploadForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!fileInput.files[0]) {
+                alert('Please select a file first');
+                return;
+            }
+
+            // Show progress
+            progressSection.style.display = 'block';
+            uploadBtn.disabled = true;
+            statusContainer.innerHTML = '';
+
+            const formData = new FormData(uploadForm);
+            
+            try {
+                // Simulate progress for better UX
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress > 90) progress = 90;
+                    progressBar.style.width = progress + '%';
+                    
+                    if (progress < 30) progressText.textContent = 'Uploading file...';
+                    else if (progress < 60) progressText.textContent = 'Processing data...';
+                    else progressText.textContent = 'Preparing training environment...';
+                }, 200);
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Complete!';
+                
+                if (response.ok) {
+                    // Success - redirect to dataset overview
+                    setTimeout(() => {
+                        window.location.href = `/dataset/${datasetNameInput.value}`;
+                    }, 1000);
+                    
+                    statusContainer.innerHTML = `
+                        <div class="status-message alert alert-success">
+                            <h5><i class="fas fa-check-circle me-2"></i>Upload Successful!</h5>
+                            <p class="mb-0">Redirecting to dataset overview...</p>
+                        </div>
+                    `;
+                } else {
+                    throw new Error('Upload failed');
+                }
+                
+            } catch (error) {
+                progressSection.style.display = 'none';
+                uploadBtn.disabled = false;
+                
+                statusContainer.innerHTML = `
+                    <div class="status-message alert alert-danger">
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i>Upload Failed</h5>
+                        <p class="mb-0">Please check your file format and try again.</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Function to load existing dataset
+        function loadExistingDataset(datasetName) {
+            // Show loading state
+            const loadingHtml = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading dataset: ${datasetName}</p>
+                </div>
+            `;
+            statusContainer.innerHTML = loadingHtml;
+            
+            // Make request to load existing dataset
+            fetch('/load_dataset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    dataset_name: datasetName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusContainer.innerHTML = `
+                        <div class="status-message alert alert-success">
+                            <h5><i class="fas fa-check-circle me-2"></i>Dataset Loaded Successfully!</h5>
+                            <p class="mb-0">Redirecting to dataset overview...</p>
+                        </div>
+                    `;
+                    
+                    // Redirect to dataset overview
+                    setTimeout(() => {
+                        window.location.href = `/dataset/${datasetName}`;
+                    }, 1000);
+                } else {
+                    statusContainer.innerHTML = `
+                        <div class="status-message alert alert-danger">
+                            <h5><i class="fas fa-exclamation-triangle me-2"></i>Loading Failed</h5>
+                            <p class="mb-0">${data.message || 'Failed to load dataset'}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                statusContainer.innerHTML = `
+                    <div class="status-message alert alert-danger">
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i>Loading Failed</h5>
+                        <p class="mb-0">Network error occurred</p>
+                    </div>
+                `;
+            });
+        }
+</script>
+{% endblock %}

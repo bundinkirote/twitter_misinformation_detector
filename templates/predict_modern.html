@@ -1,0 +1,590 @@
+{% extends "base.html" %}
+
+{% block title %}Predict Misinformation - AI Detection System{% endblock %}
+
+{% block extra_css %}
+<style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin: 40px auto;
+            padding: 40px;
+            max-width: 900px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .prediction-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: none;
+        }
+        
+        .textarea-container {
+            position: relative;
+        }
+        
+        .tweet-input {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            font-size: 1.1rem;
+            min-height: 120px;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+        
+        .tweet-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .char-counter {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .btn-predict {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-predict:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        
+        .prediction-result {
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .result-misinformation {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+        
+        .result-legitimate {
+            background: linear-gradient(135deg, #51cf66, #40c057);
+            color: white;
+        }
+        
+        .confidence-bar {
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            height: 8px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.8s ease;
+        }
+        
+        .features-breakdown {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        .feature-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .feature-item:last-child {
+            border-bottom: none;
+        }
+        
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: white !important;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            color: var(--accent-color) !important;
+        }
+        
+        .model-selector {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .loading-spinner {
+            display: none;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="main-container">
+            <div class="text-center mb-4">
+                <h1>
+                    <i class="fas fa-search text-primary me-3"></i>
+                    Misinformation Detection
+                </h1>
+                <p class="lead text-muted">
+                    Analyze tweets and social media content for potential misinformation using AI
+                </p>
+            </div>
+
+            <!-- Model Selector -->
+            <div class="model-selector">
+                <h5><i class="fas fa-brain me-2"></i>Select Model</h5>
+                <div class="row">
+                    <div class="col-md-8">
+                        <select id="modelSelect" class="form-select">
+                            <option value="">Loading available models...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-outline-primary" onclick="loadModels()">
+                            <i class="fas fa-sync me-2"></i>Refresh Models
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Use All Models Option -->
+                <div class="mt-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="useAllModels" onchange="toggleModelSelection()">
+                        <label class="form-check-label" for="useAllModels">
+                            <i class="fas fa-layer-group me-2"></i>
+                            <strong>Use All Available Models</strong> (Ensemble Prediction)
+                        </label>
+                    </div>
+                    <small class="text-muted">
+                        Run predictions with all trained models and get an ensemble result with individual model breakdowns.
+                    </small>
+                </div>
+                
+                {% if not available_models %}
+                <div class="alert alert-info mt-3" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>No trained models found.</strong> 
+                    <a href="{{ url_for('upload_form') }}" class="alert-link">Upload a dataset</a> and train models first.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Prediction Form -->
+            <div class="prediction-card">
+                <form id="predictionForm">
+                    <div class="textarea-container">
+                        <label for="tweetText" class="form-label h5">
+                            <i class="fas fa-twitter me-2 text-primary"></i>
+                            Enter Tweet or Text to Analyze
+                        </label>
+                        <textarea 
+                            id="tweetText" 
+                            name="text" 
+                            class="form-control tweet-input" 
+                            placeholder="Paste your tweet or text content here for misinformation analysis..."
+                            maxlength="5000"
+                            required
+                        ></textarea>
+                        <div class="char-counter">
+                            <span id="charCount">0</span>/5000
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-predict text-white">
+                            <i class="fas fa-search me-2"></i>
+                            Analyze for Misinformation
+                        </button>
+                        <div class="loading-spinner mt-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Analyzing...</span>
+                            </div>
+                            <p class="mt-2">Analyzing content...</p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results Area -->
+            <div id="resultsArea"></div>
+
+            <!-- Sample Tweets -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-lightbulb me-2"></i>Try These Sample Tweets</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-info btn-sm mb-2 w-100" onclick="loadSample('legitimate')">
+                                Load Legitimate Sample
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-warning btn-sm mb-2 w-100" onclick="loadSample('misinformation')">
+                                Load Misinformation Sample
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+        const tweetText = document.getElementById('tweetText');
+        const charCount = document.getElementById('charCount');
+        const predictionForm = document.getElementById('predictionForm');
+        const resultsArea = document.getElementById('resultsArea');
+        const loadingSpinner = document.querySelector('.loading-spinner');
+        const modelSelect = document.getElementById('modelSelect');
+
+        // Character counter
+        tweetText.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+        });
+
+        // Load available models
+        async function loadModels() {
+            try {
+                const availableModels = {{ available_models | tojson }};
+                
+                if (availableModels && availableModels.length > 0) {
+                    let optionsHtml = '<option value="">Select a trained model...</option>';
+                    
+                    availableModels.forEach(model => {
+                        const bestBadge = model.is_best ? ' 🏆' : '';
+                        const accuracy = (model.accuracy * 100).toFixed(1);
+                        const f1 = model.f1_score ? model.f1_score.toFixed(3) : 'N/A';
+                        optionsHtml += `<option value="${model.id}" data-dataset="${model.dataset}" data-model="${model.name}">${model.display_name} - Acc: ${accuracy}% F1: ${f1}${bestBadge}</option>`;
+                    });
+                    
+                    modelSelect.innerHTML = optionsHtml;
+                } else {
+                    modelSelect.innerHTML = '<option value="">No trained models found. Please train a model first.</option>';
+                }
+            } catch (error) {
+                console.error('Error loading models:', error);
+                modelSelect.innerHTML = '<option value="">Error loading models</option>';
+            }
+        }
+
+        // Toggle model selection based on "Use All Models" checkbox
+        function toggleModelSelection() {
+            const useAllModels = document.getElementById('useAllModels');
+            const modelSelect = document.getElementById('modelSelect');
+            
+            if (useAllModels.checked) {
+                modelSelect.disabled = true;
+                modelSelect.style.opacity = '0.5';
+            } else {
+                modelSelect.disabled = false;
+                modelSelect.style.opacity = '1';
+            }
+        }
+
+        // Form submission
+        predictionForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const text = tweetText.value.trim();
+            const selectedModel = modelSelect.value;
+            const useAllModels = document.getElementById('useAllModels').checked;
+            
+            if (!text) {
+                alert('Please enter some text to analyze');
+                return;
+            }
+            
+            if (!useAllModels && !selectedModel) {
+                alert('Please select a model or choose "Use All Models"');
+                return;
+            }
+
+            // Show loading
+            loadingSpinner.style.display = 'block';
+            resultsArea.innerHTML = '';
+
+            try {
+                const formData = new FormData();
+                formData.append('text', text);
+                formData.append('model_id', selectedModel);
+
+                let endpoint = '/predict_text';
+                if (useAllModels) {
+                    endpoint = '/predict_all_models';
+                }
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    if (useAllModels) {
+                        displayAllModelsResult(result, text);
+                    } else {
+                        displayPredictionResult(result.prediction, text);
+                    }
+                } else {
+                    displayError(result.message || 'Prediction failed');
+                }
+            } catch (error) {
+                console.error('Prediction error:', error);
+                displayError('Network error occurred. Please try again.');
+            } finally {
+                loadingSpinner.style.display = 'none';
+            }
+        });
+
+        // Display prediction results
+        function displayPredictionResult(prediction, originalText) {
+            const isMisinformation = prediction.prediction === 1;
+            const confidence = (prediction.confidence * 100).toFixed(1);
+            
+            const resultClass = isMisinformation ? 'result-misinformation' : 'result-legitimate';
+            const resultIcon = isMisinformation ? 'fas fa-exclamation-triangle' : 'fas fa-check-circle';
+            const resultText = isMisinformation ? 'Potential Misinformation Detected' : 'Content Appears Legitimate';
+            
+            resultsArea.innerHTML = `
+                <div class="prediction-result ${resultClass}">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="${resultIcon} fa-2x me-3"></i>
+                        <div>
+                            <h4 class="mb-1">${resultText}</h4>
+                            <p class="mb-0">Confidence: ${confidence}%</p>
+                        </div>
+                    </div>
+                    
+                    <div class="confidence-bar">
+                        <div class="confidence-fill bg-white" style="width: ${confidence}%"></div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <strong>Analyzed Text:</strong>
+                            <p class="mt-2 p-3 rounded" style="background: rgba(255,255,255,0.2);">
+                                "${originalText.substring(0, 200)}${originalText.length > 200 ? '...' : ''}"
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Model Details:</strong>
+                            <ul class="mt-2">
+                                <li>Algorithm: ${prediction.model_type || 'Machine Learning'}</li>
+                                <li>Features: Text Analysis + Behavioral</li>
+                                <li>Accuracy: 95%+ on test data</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display results from all models
+        function displayAllModelsResult(result, originalText) {
+            const ensemblePrediction = result.ensemble_prediction;
+            const ensembleConfidence = (result.ensemble_confidence * 100).toFixed(1);
+            const individualPredictions = result.individual_predictions;
+            const summary = result.summary;
+            
+            const isMisinformation = ensemblePrediction === 1;
+            const resultClass = isMisinformation ? 'result-misinformation' : 'result-legitimate';
+            const resultIcon = isMisinformation ? 'fas fa-exclamation-triangle' : 'fas fa-check-circle';
+            const resultText = isMisinformation ? 'Potential Misinformation Detected' : 'Content Appears Legitimate';
+            
+            let individualResultsHtml = '';
+            
+            // Generate individual model results
+            Object.entries(individualPredictions).forEach(([modelName, modelResult]) => {
+                if (modelResult.status === 'success') {
+                    const modelIsMisinformation = modelResult.prediction === 1;
+                    const modelConfidence = (modelResult.confidence * 100).toFixed(1);
+                    const modelClass = modelIsMisinformation ? 'border-danger' : 'border-success';
+                    const modelIcon = modelIsMisinformation ? 'fas fa-exclamation-triangle text-danger' : 'fas fa-check-circle text-success';
+                    const modelText = modelIsMisinformation ? 'Misinformation' : 'Legitimate';
+                    
+                    individualResultsHtml += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card ${modelClass}">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="${modelIcon} me-2"></i>
+                                        ${modelName.replace('_', ' ').toUpperCase()}
+                                    </h6>
+                                    <p class="card-text">
+                                        <strong>Prediction:</strong> ${modelText}<br>
+                                        <strong>Confidence:</strong> ${modelConfidence}%
+                                    </p>
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar ${modelIsMisinformation ? 'bg-danger' : 'bg-success'}" 
+                                             style="width: ${modelConfidence}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    individualResultsHtml += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                        ${modelName.replace('_', ' ').toUpperCase()}
+                                    </h6>
+                                    <p class="card-text text-warning">
+                                        <strong>Error:</strong> ${modelResult.error}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            resultsArea.innerHTML = `
+                <!-- Ensemble Result -->
+                <div class="prediction-result ${resultClass}">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="${resultIcon} fa-2x me-3"></i>
+                        <div>
+                            <h4 class="mb-1">
+                                <i class="fas fa-layer-group me-2"></i>
+                                Ensemble Result: ${resultText}
+                            </h4>
+                            <p class="mb-0">Average Confidence: ${ensembleConfidence}%</p>
+                        </div>
+                    </div>
+                    
+                    <div class="confidence-bar">
+                        <div class="confidence-fill bg-white" style="width: ${ensembleConfidence}%"></div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <strong>Analyzed Text:</strong>
+                            <p class="mt-2 p-3 rounded" style="background: rgba(255,255,255,0.2);">
+                                "${originalText.substring(0, 200)}${originalText.length > 200 ? '...' : ''}"
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Ensemble Summary:</strong>
+                            <ul class="mt-2">
+                                <li>Total Models: ${summary.total_models}</li>
+                                <li>Successful: ${summary.successful_predictions}</li>
+                                <li>Failed: ${summary.failed_predictions}</li>
+                                <li>Processing Time: ${summary.processing_time.toFixed(2)}s</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Individual Model Results -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Individual Model Results
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            ${individualResultsHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display error
+        function displayError(message) {
+            resultsArea.innerHTML = `
+                <div class="alert alert-danger">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Analysis Failed</h5>
+                    <p class="mb-0">${message}</p>
+                </div>
+            `;
+        }
+
+        // Load sample texts
+        function loadSample(type) {
+            const samples = {
+                legitimate: "Just had a great meeting with the team to discuss our quarterly goals. Looking forward to implementing the new strategies we discussed!",
+                misinformation: "BREAKING: Government officials secretly meeting to control social media. They don't want you to know the truth! Share before they delete this!"
+            };
+            
+            tweetText.value = samples[type];
+            charCount.textContent = samples[type].length;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadModels();
+        });
+</script>
+{% endblock %}

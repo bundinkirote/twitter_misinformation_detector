@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Analysis - Political Misinformation Detection{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 text-center">
+        <h1 class="display-4">Batch Tweet Analysis</h1>
+        <p class="lead">Analyze multiple tweets at once for misinformation detection</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0"><i class="fas fa-tasks me-2"></i>Batch Analysis</h3>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                
+                <form method="POST" enctype="multipart/form-data" class="mb-4">
+                    <div class="mb-3">
+                        <label for="analysis_type" class="form-label">Analysis Method:</label>
+                        <select class="form-select" id="analysis_type" name="analysis_type" onchange="toggleInputMethod()">
+                            <option value="text_input">Enter Multiple Tweets</option>
+                            <option value="file_upload">Upload CSV File</option>
+                        </select>
+                    </div>
+                    
+                    <div id="text_input_section" class="mb-3">
+                        <label for="tweets" class="form-label">Enter Tweets (one per line):</label>
+                        <textarea id="tweets" name="tweets" class="form-control" rows="8" placeholder="Enter multiple tweets, one per line..."></textarea>
+                        <small class="form-text text-muted">Each line will be analyzed as a separate tweet.</small>
+                    </div>
+                    
+                    <div id="file_upload_section" class="mb-3" style="display: none;">
+                        <label for="tweets_file" class="form-label">Upload CSV File:</label>
+                        <input type="file" class="form-control" id="tweets_file" name="tweets_file" accept=".csv">
+                        <small class="form-text text-muted">CSV file should have a column named 'tweet' or 'text' containing the tweets.</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="model_choice" class="form-label">Select Model:</label>
+                        <select class="form-select" id="model_choice" name="model_choice">
+                            <option value="logistic" selected>Logistic Regression</option>
+                            <option value="naive_bayes">Naive Bayes</option>
+                            <option value="tuned_logistic">Tuned Logistic Regression</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-play me-2"></i>Run Batch Analysis
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if batch_results %}
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Analysis Results</h3>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h4 class="card-title">Summary</h4>
+                                <div class="row mt-3">
+                                    <div class="col-6">
+                                        <div class="card bg-danger text-white mb-3">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Misinformation</h5>
+                                                <p class="display-4">{{ misinformation_count }}</p>
+                                                <p>{{ (misinformation_count / batch_results|length * 100)|round(1) }}%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="card bg-success text-white mb-3">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Factual</h5>
+                                                <p class="display-4">{{ batch_results|length - misinformation_count }}</p>
+                                                <p>{{ ((batch_results|length - misinformation_count) / batch_results|length * 100)|round(1) }}%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <p class="mb-1">Total tweets analyzed: <strong>{{ batch_results|length }}</strong></p>
+                                    <p class="mb-1">Model used: <strong>{{ model_used }}</strong></p>
+                                    <p>Average confidence: <strong>{{ avg_confidence|round(1) }}%</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <canvas id="resultsChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 class="mb-3">Detailed Results</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Tweet</th>
+                                <th>Classification</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in batch_results %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ result.tweet|truncate(80) }}</td>
+                                <td>
+                                    <span class="badge {% if result.prediction == 'Misinformation' %}bg-danger{% else %}bg-success{% endif %} p-2">
+                                        {{ result.prediction }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if result.prediction == 'Misinformation' %}bg-danger{% else %}bg-success{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ result.confidence }}%;" 
+                                             aria-valuenow="{{ result.confidence }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">{{ result.confidence }}%</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4 text-center">
+                    <a href="{{ url_for('download_results') }}" class="btn btn-success">
+                        <i class="fas fa-download me-2"></i>Download Results as CSV
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    function toggleInputMethod() {
+        const analysisType = document.getElementById('analysis_type').value;
+        const textInputSection = document.getElementById('text_input_section');
+        const fileUploadSection = document.getElementById('file_upload_section');
+        
+        if (analysisType === 'text_input') {
+            textInputSection.style.display = 'block';
+            fileUploadSection.style.display = 'none';
+        } else {
+            textInputSection.style.display = 'none';
+            fileUploadSection.style.display = 'block';
+        }
+    }
+    
+    {% if batch_results %}
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('resultsChart').getContext('2d');
+        const resultsChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Misinformation', 'Factual'],
+                datasets: [{
+                    data: [{{ misinformation_count }}, {{ batch_results|length - misinformation_count }}],
+                    backgroundColor: ['#dc3545', '#28a745'],
+                    borderColor: ['#dc3545', '#28a745'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Classification Results'
+                    }
+                }
+            }
+        });
+    });
+    {% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+
+{% block title %}AI Insights Dashboard - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .insights-dashboard {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .stage-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .stage-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stage-header {
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stage-title {
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 1.5rem;
+    }
+    
+    .stage-description {
+        color: #6c757d;
+        margin-bottom: 0;
+    }
+    
+    .insight-summary {
+        background: rgba(102, 126, 234, 0.1);
+        border-left: 4px solid #667eea;
+        padding: 1rem;
+        border-radius: 0 10px 10px 0;
+        margin-bottom: 1rem;
+    }
+    
+    .insight-count {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+    
+    .priority-summary {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .priority-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    
+    .recommendations-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .recommendation-item {
+        background: white;
+        border-left: 4px solid #28a745;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 0 10px 10px 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .progress-indicator {
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 1rem;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        transition: width 0.3s ease;
+    }
+    
+    .gratification-metric {
+        padding: 1rem;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 0.5rem 0;
+    }
+    
+    .gratification-metric:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- Dashboard Header -->
+    <div class="insights-dashboard">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-brain me-3"></i>AI Insights Dashboard
+                </h1>
+                <p class="lead mb-0">
+                    Comprehensive analysis and recommendations for <strong>{{ dataset_name }}</strong>
+                </p>
+                <p class="mb-0 mt-2">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    AI-powered insights to guide your misinformation detection pipeline
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="insight-count">{{ total_insights }}</div>
+                <div>Total Insights</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline Progress -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks me-2"></i>Pipeline Progress
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for stage, status in pipeline_status.items() %}
+                        <div class="col-md-2 text-center">
+                            <div class="mb-2">
+                                <i class="fas fa-{{ stage_icons[stage] }} fa-2x 
+                                   {% if status == 'completed' %}text-success
+                                   {% elif status == 'in_progress' %}text-warning
+                                   {% else %}text-muted{% endif %}"></i>
+                            </div>
+                            <h6>{{ stage|title }}</h6>
+                            <span class="badge 
+                                {% if status == 'completed' %}bg-success
+                                {% elif status == 'in_progress' %}bg-warning
+                                {% else %}bg-secondary{% endif %}">
+                                {{ status|title }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stage-wise Insights -->
+    {% for stage_name, stage_insights in insights_by_stage.items() %}
+    {% if stage_insights %}
+    <div class="stage-card">
+        <div class="stage-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h3 class="stage-title">
+                        <i class="fas fa-{{ stage_icons[stage_name] }} me-2"></i>
+                        {{ stage_name|title }} Analysis
+                    </h3>
+                    <p class="stage-description">{{ stage_descriptions[stage_name] }}</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="insight-summary text-center">
+                        <div class="insight-count">{{ stage_insights|length }}</div>
+                        <div>Insights Generated</div>
+                        <div class="priority-summary justify-content-center">
+                            {% set critical_count = stage_insights|selectattr("priority", "equalto", "critical")|list|length %}
+                            {% set high_count = stage_insights|selectattr("priority", "equalto", "high")|list|length %}
+                            {% set medium_count = stage_insights|selectattr("priority", "equalto", "medium")|list|length %}
+                            
+                            {% if critical_count > 0 %}
+                            <span class="priority-badge" style="background: #dc3545; color: white;">
+                                {{ critical_count }} Critical
+                            </span>
+                            {% endif %}
+                            {% if high_count > 0 %}
+                            <span class="priority-badge" style="background: #fd7e14; color: white;">
+                                {{ high_count }} High
+                            </span>
+                            {% endif %}
+                            {% if medium_count > 0 %}
+                            <span class="priority-badge" style="background: #ffc107; color: #212529;">
+                                {{ medium_count }} Medium
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stage Insights -->
+        <div class="row">
+            {% for insight in stage_insights %}
+            <div class="col-md-6 mb-3">
+                <div class="insight-item p-3 border rounded">
+                    <div class="d-flex align-items-start">
+                        <div class="insight-icon insight-{{ insight.type }} me-3">
+                            <i class="{{ insight.icon }}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="insight-title mb-2">{{ insight.title }}</h6>
+                            <p class="insight-description mb-2 text-muted small">{{ insight.description }}</p>
+                            <div class="insight-recommendation">
+                                <small class="text-primary">
+                                    <i class="fas fa-arrow-right me-1"></i>
+                                    <strong>Action:</strong> {{ insight.recommendation }}
+                                </small>
+                            </div>
+                        </div>
+                        <span class="badge insight-priority-{{ insight.priority }}">
+                            {{ insight.priority|title }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <!-- Gratification Analysis Overview -->
+    <div class="stage-card">
+        <div class="stage-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h3 class="stage-title">
+                        <i class="fas fa-heart me-2"></i>Content Gratification Analysis
+                    </h3>
+                    <p class="stage-description">Understanding user motivations and content consumption patterns</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="insight-summary text-center">
+                        <div class="insight-count">4</div>
+                        <div>Gratification Types</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stage-content">
+            <!-- Gratification Summary Charts -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6><i class="fas fa-chart-pie me-2"></i>Gratification Overview</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="dashboardGratificationChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6><i class="fas fa-shield-alt me-2"></i>Risk Assessment</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="dashboardRiskChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gratification Insights Summary -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Gratification Analysis Summary</h6>
+                        <p class="mb-2">
+                            Content gratification analysis reveals user motivations and susceptibility patterns.
+                            This analysis helps identify potential misinformation vulnerabilities based on psychological gratification needs.
+                        </p>
+                        <div class="row mt-3">
+                            <div class="col-md-3 text-center">
+                                <div class="gratification-metric">
+                                    <i class="fas fa-play-circle text-warning fa-2x"></i>
+                                    <div class="mt-2">
+                                        <strong>Entertainment</strong>
+                                        <div class="text-muted">Humor & Emotion</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="gratification-metric">
+                                    <i class="fas fa-info-circle text-info fa-2x"></i>
+                                    <div class="mt-2">
+                                        <strong>Information</strong>
+                                        <div class="text-muted">Knowledge Seeking</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="gratification-metric">
+                                    <i class="fas fa-users text-success fa-2x"></i>
+                                    <div class="mt-2">
+                                        <strong>Social</strong>
+                                        <div class="text-muted">Connection & Sharing</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="gratification-metric">
+                                    <i class="fas fa-user text-danger fa-2x"></i>
+                                    <div class="mt-2">
+                                        <strong>Identity</strong>
+                                        <div class="text-muted">Self-Expression</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Recommendations -->
+    <div class="recommendations-section">
+        <h3 class="mb-4">
+            <i class="fas fa-star me-2"></i>Top Recommendations
+        </h3>
+        <p class="text-muted mb-4">
+            Priority actions based on your current pipeline analysis
+        </p>
+        
+        {% for recommendation in top_recommendations %}
+        <div class="recommendation-item">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-check-circle text-success fa-lg"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <strong>{{ recommendation.title }}</strong>
+                    <p class="mb-0 mt-1 text-muted">{{ recommendation.description }}</p>
+                </div>
+                <div>
+                    <span class="badge bg-primary">{{ recommendation.stage|title }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('dataset_overview', dataset_name=dataset_name) }}" 
+                   class="btn btn-outline-primary">
+                    <i class="fas fa-database me-2"></i>Dataset Overview
+                </a>
+                <a href="{{ url_for('model_evaluation', dataset_name=dataset_name) }}" 
+                   class="btn btn-outline-success">
+                    <i class="fas fa-chart-line me-2"></i>Model Results
+                </a>
+                <a href="{{ url_for('network_analysis', dataset_name=dataset_name) }}" 
+                   class="btn btn-outline-info">
+                    <i class="fas fa-network-wired me-2"></i>Network Analysis
+                </a>
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-download me-2"></i>Export Report
+                </button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Auto-refresh insights every 30 seconds if pipeline is running
+    {% if pipeline_status.values()|select("equalto", "in_progress")|list|length > 0 %}
+    setTimeout(function() {
+        location.reload();
+    }, 30000);
+    {% endif %}
+    
+    // Smooth scroll to sections
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+    
+    // Initialize gratification charts
+    document.addEventListener('DOMContentLoaded', function() {
+        createDashboardGratificationChart();
+        createDashboardRiskChart();
+    });
+    
+    function createDashboardGratificationChart() {
+        const ctx = document.getElementById('dashboardGratificationChart').getContext('2d');
+        
+        // Sample gratification data - in real implementation, this would come from backend
+        const gratificationData = {
+            'Entertainment': 0.65,
+            'Information': 0.72,
+            'Social': 0.58,
+            'Identity': 0.43
+        };
+        
+        new Chart(ctx, {
+            type: 'polarArea',
+            data: {
+                labels: Object.keys(gratificationData),
+                datasets: [{
+                    data: Object.values(gratificationData),
+                    backgroundColor: [
+                        'rgba(255, 193, 7, 0.7)',   // Entertainment - Yellow
+                        'rgba(23, 162, 184, 0.7)',  // Information - Cyan
+                        'rgba(40, 167, 69, 0.7)',   // Social - Green
+                        'rgba(220, 53, 69, 0.7)'    // Identity - Red
+                    ],
+                    borderColor: [
+                        '#ffc107',
+                        '#17a2b8',
+                        '#28a745',
+                        '#dc3545'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 1.0,
+                        ticks: {
+                            stepSize: 0.2
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function createDashboardRiskChart() {
+        const ctx = document.getElementById('dashboardRiskChart').getContext('2d');
+        
+        // Calculate risk levels based on gratification patterns
+        const riskLevels = {
+            'Low Risk': 45,
+            'Medium Risk': 35,
+            'High Risk': 20
+        };
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(riskLevels),
+                datasets: [{
+                    data: Object.values(riskLevels),
+                    backgroundColor: [
+                        '#28a745',  // Low - Green
+                        '#ffc107',  // Medium - Yellow
+                        '#dc3545'   // High - Red
+                    ],
+                    borderWidth: 3,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

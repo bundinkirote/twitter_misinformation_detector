@@ -1,0 +1,534 @@
+{% extends "base.html" %}
+
+{% block title %}Language Detection Results - {{ dataset_name }}{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        margin: 40px auto;
+        padding: 40px;
+        max-width: 1200px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding: 0 20px;
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #6c757d;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+    }
+    .step.completed .step-number {
+        background: #28a745;
+    }
+    .step.active .step-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .results-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin: 15px 0;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    .results-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        border: 2px solid #e9ecef;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: 500;
+    }
+    .comparison-badge {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin: 2px;
+    }
+    
+    /* Make language chart smaller */
+    #languageChart {
+        max-height: 300px !important;
+        height: 300px !important;
+    }
+    
+    .results-card .chart-container {
+        height: 350px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Progress Steps -->
+    <div class="progress-steps">
+        <div class="step completed">
+            <div class="step-number">1</div>
+            <small>Upload Dataset</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">2</div>
+            <small>Data Overview</small>
+        </div>
+        <div class="step completed">
+            <div class="step-number">3</div>
+            <small>Language Detection</small>
+        </div>
+        <div class="step active">
+            <div class="step-number">4</div>
+            <small>Content Analysis</small>
+        </div>
+        <div class="step">
+            <div class="step-number">5</div>
+            <small>Behavioral Profiling</small>
+        </div>
+        <div class="step">
+            <div class="step-number">6</div>
+            <small>Gratification Extraction</small>
+        </div>
+        <div class="step">
+            <div class="step-number">7</div>
+            <small>Model Training</small>
+        </div>
+        <div class="step">
+            <div class="step-number">8</div>
+            <small>Explainability</small>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <h1 class="display-4 text-primary">
+            <i class="fas fa-language me-3"></i>Language Detection Results
+        </h1>
+        <p class="lead text-muted">Language analysis completed for {{ dataset_name }}</p>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-primary">{{ language_results.total_samples_analyzed or 0 }}</h3>
+                <p class="mb-0">Samples Analyzed</p>
+                <small class="text-muted">of {{ language_results.total_samples_in_dataset or 0 }} total</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-info">
+                    {% if language_results.dominant_language == 'en' %}English
+                    {% elif language_results.dominant_language == 'sw' %}Kiswahili
+                    {% elif language_results.dominant_language == 'mixed' %}Mixed
+                    {% else %}{{ language_results.dominant_language or 'Unknown' }}
+                    {% endif %}
+                </h3>
+                <p class="mb-0">Dominant Language</p>
+                <small class="text-muted">
+                    {{ "%.1f"|format((language_results.language_counts[language_results.dominant_language] / language_results.total_samples_analyzed * 100) if language_results.language_counts and language_results.dominant_language else 0) }}% of samples
+                </small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-success">{{ language_results.recommended_transformer or 'Auto' }}</h3>
+                <p class="mb-0">Recommended Model</p>
+                <small class="text-muted">
+                    {% if language_results.recommended_transformer == 'multilingual' %}
+                        For mixed languages
+                    {% else %}
+                        For single language
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h3 class="text-warning">{{ language_results.language_counts.mixed or 0 }}</h3>
+                <p class="mb-0">Mixed Language</p>
+                <small class="text-muted">Code-switching detected</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Language Distribution -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="results-card">
+                <h5><i class="fas fa-chart-pie me-2"></i>Language Distribution</h5>
+                <canvas id="languageChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="results-card">
+                <h5><i class="fas fa-cogs me-2"></i>Detection Details</h5>
+                <div class="mt-3">
+                    <p><strong>Analysis Date:</strong> 
+                        {% if language_results.analysis_date %}
+                            {{ language_results.analysis_date[:10] }}
+                        {% else %}
+                            Today
+                        {% endif %}
+                    </p>
+                    <p><strong>Processing Method:</strong> Multi-pattern Detection</p>
+                    <p><strong>Transformer Selection:</strong> {{ language_results.recommended_transformer|title or 'Auto' }}</p>
+                    <p><strong>Language Coverage:</strong> 
+                        {{ language_results.language_distribution|length or 0 }} languages detected
+                    </p>
+                </div>
+                
+                {% if language_results.sample_texts %}
+                <div class="mt-3">
+                    <h6>Sample Texts by Language:</h6>
+                    {% if language_results.sample_texts.english %}
+                        <div class="small mt-2">
+                            <strong class="text-primary">English:</strong><br>
+                            <em>"{{ language_results.sample_texts.english[0][:80] }}..."</em>
+                        </div>
+                    {% endif %}
+                    {% if language_results.sample_texts.kiswahili %}
+                        <div class="small mt-2">
+                            <strong class="text-info">Kiswahili:</strong><br>
+                            <em>"{{ language_results.sample_texts.kiswahili[0][:80] }}..."</em>
+                        </div>
+                    {% endif %}
+                    {% if language_results.sample_texts.mixed %}
+                        <div class="small mt-2">
+                            <strong class="text-warning">Mixed:</strong><br>
+                            <em>"{{ language_results.sample_texts.mixed[0][:80] }}..."</em>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Language Analysis -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="results-card">
+                <h5><i class="fas fa-chart-bar me-2"></i>Detailed Language Analysis</h5>
+                
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6>Language Breakdown</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Language</th>
+                                        <th>Count</th>
+                                        <th>Percentage</th>
+                                        <th>Transformer</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if language_results.language_counts %}
+                                        {% for lang, count in language_results.language_counts.items() %}
+                                            {% if count > 0 %}
+                                            <tr>
+                                                <td>
+                                                    {% if lang == 'en' %}
+                                                        <span class="badge bg-primary">English</span>
+                                                    {% elif lang == 'sw' %}
+                                                        <span class="badge bg-info">Kiswahili</span>
+                                                    {% elif lang == 'mixed' %}
+                                                        <span class="badge bg-warning">Mixed</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">{{ lang|title }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ count }}</td>
+                                                <td>{{ "%.1f"|format(count / language_results.total_samples_analyzed * 100) }}%</td>
+                                                <td>
+                                                    {% if lang == 'en' %}
+                                                        <small class="text-muted">Monolingual</small>
+                                                    {% else %}
+                                                        <small class="text-muted">Multilingual</small>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Transformer Model Selection</h6>
+                        {% if language_results.transformer_selections %}
+                        <div class="mt-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Monolingual Models:</span>
+                                <span class="badge bg-success">{{ language_results.transformer_selections.monolingual or 0 }} samples</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div class="progress-bar bg-success" style="width: {{ (language_results.transformer_selections.monolingual / language_results.total_samples_analyzed * 100) if language_results.transformer_selections.monolingual else 0 }}%"></div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Multilingual Models:</span>
+                                <span class="badge bg-info">{{ language_results.transformer_selections.multilingual or 0 }} samples</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div class="progress-bar bg-info" style="width: {{ (language_results.transformer_selections.multilingual / language_results.total_samples_analyzed * 100) if language_results.transformer_selections.multilingual else 0 }}%"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mt-3">
+                            <h6>Recommended Configuration</h6>
+                            <div class="alert alert-light">
+                                <strong>Primary Model:</strong> {{ language_results.recommended_transformer|title }} Transformer<br>
+                                <strong>Reason:</strong> 
+                                {% if language_results.recommended_transformer == 'multilingual' %}
+                                    Significant multilingual content detected
+                                {% else %}
+                                    Predominantly single language content
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if language_results.detailed_results %}
+                <div class="mt-4">
+                    <h6>Sample Analysis Results</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Sample</th>
+                                    <th>Text Preview</th>
+                                    <th>Language</th>
+                                    <th>Confidence</th>
+                                    <th>Model</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in language_results.detailed_results[:10] %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <small class="text-muted">{{ result.text_preview[:60] }}...</small>
+                                    </td>
+                                    <td>
+                                        {% if result.primary_language == 'en' %}
+                                            <span class="badge bg-primary">EN</span>
+                                        {% elif result.primary_language == 'sw' %}
+                                            <span class="badge bg-info">SW</span>
+                                        {% elif result.primary_language == 'mixed' %}
+                                            <span class="badge bg-warning">MIX</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ result.primary_language|upper }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ "%.2f"|format(result.confidence or 0) }}</small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ result.model_type|title or 'Auto' }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if language_results.detailed_results|length > 10 %}
+                    <small class="text-muted">Showing first 10 of {{ language_results.detailed_results|length }} analyzed samples</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Zero-Shot Comparison (if available) -->
+    {% if zero_shot_results %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="results-card">
+                <h5><i class="fas fa-flask me-2"></i>Zero-Shot Classification Results (Comparison Study)</h5>
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Research Comparison</h6>
+                    <p class="mb-2">
+                        Zero-shot classification has been run alongside language detection for comparison with your 
+                        gratification-based approach. This enables comparing traditional vs novel methods.
+                    </p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h4 class="text-info">{{ zero_shot_results.total_classified or 0 }}</h4>
+                            <p class="mb-0">Samples Classified</p>
+                            <small class="text-muted">Zero-shot predictions</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h4 class="text-success">{{ "%.2f"|format(zero_shot_results.average_confidence or 0.0) }}</h4>
+                            <p class="mb-0">Avg Confidence</p>
+                            <small class="text-muted">Prediction confidence</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h4 class="text-warning">{{ zero_shot_results.misinformation_detected or 0 }}</h4>
+                            <p class="mb-0">Misinformation</p>
+                            <small class="text-muted">Detected cases</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h4 class="text-primary">{{ zero_shot_results.model_used or 'BART-MNLI' }}</h4>
+                            <p class="mb-0">Model Used</p>
+                            <small class="text-muted">{{ zero_shot_results.processing_time or 'N/A' }}</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Comparison Analysis Available</h6>
+                    <div class="mt-2">
+                        <span class="comparison-badge">Traditional Method Results</span>
+                        <span class="comparison-badge">Saved for Thesis Comparison</span>
+                        <span class="comparison-badge">Performance Metrics Ready</span>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        Zero-shot results will be compared with gratification-based models in the training phase.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Next Steps -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="results-card text-center">
+                <h5>Continue to Content Analysis</h5>
+                <p class="text-muted">
+                    Proceed with sentiment analysis and initial gratification profiling using the detected language information
+                </p>
+                <button type="button" class="btn btn-primary btn-lg" onclick="proceedToContentAnalysis()">
+                    <i class="fas fa-microscope me-2"></i>Start Content Analysis
+                </button>
+                
+                {% if zero_shot_results %}
+                <div class="mt-3">
+                    <small class="text-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Zero-shot results saved for comparison with gratification-based approach
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    createLanguageChart();
+});
+
+function createLanguageChart() {
+    const ctx = document.getElementById('languageChart').getContext('2d');
+    
+    const languageData = {
+        {% if language_results.language_counts %}
+            {% for lang, count in language_results.language_counts.items() %}
+                {% if count > 0 %}
+                    {% if lang == 'en' %}'English'{% elif lang == 'sw' %}'Kiswahili'{% elif lang == 'mixed' %}'Mixed'{% else %}'{{ lang|title }}'{% endif %}: {{ count }},
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            'English': 60,
+            'Kiswahili': 30,
+            'Mixed': 10
+        {% endif %}
+    };
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(languageData),
+            datasets: [{
+                data: Object.values(languageData),
+                backgroundColor: [
+                    '#667eea',
+                    '#764ba2',
+                    '#ffc107',
+                    '#28a745',
+                    '#dc3545'
+                ],
+                borderWidth: 3,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true,
+                        boxWidth: 12
+                    }
+                }
+            }
+        }
+    });
+}
+
+function proceedToContentAnalysis() {
+    window.location.href = `/content_analysis/{{ dataset_name }}`;
+}
+</script>
+{% endblock %}

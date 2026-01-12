@@ -1,0 +1,1400 @@
+{% extends "base.html" %}
+
+{% block title %}AI Misinformation Detection - Real-Time Prediction{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin: 20px auto;
+            padding: 30px;
+            max-width: 1400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .prediction-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .prediction-header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .prediction-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        /* Input Section */
+        .input-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 20px;
+            align-items: end;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .tweet-input {
+            width: 100%;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 1rem;
+            min-height: 120px;
+            resize: vertical;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .tweet-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+        
+        .model-select, .transformer-select, .dataset-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            background: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .model-select:focus, .transformer-select:focus, .dataset-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+        
+        .options-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        
+        .predict-btn {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .predict-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .predict-btn .loading-spinner {
+            display: none;
+            margin-right: 10px;
+        }
+        
+        .predict-btn.loading .loading-spinner {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Results Section */
+        .results-section {
+            display: none;
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+        
+        .prediction-badge {
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .prediction-badge.misinformation {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+        }
+        
+        .prediction-badge.legitimate {
+            background: linear-gradient(135deg, #51cf66, #40c057);
+            color: white;
+        }
+        
+        .confidence-meter {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .confidence-bar {
+            width: 200px;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .score-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .score-card h4 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        
+        .score-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .score-description {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        /* Visualizations */
+        .visualization-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+        
+        .viz-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .viz-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        .viz-content {
+            display: none;
+            padding: 20px 0;
+        }
+        
+        .viz-content.active {
+            display: block;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        
+        /* Source Attribution */
+        .source-attribution {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .source-attribution h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .source-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .source-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        /* History Panel */
+        .history-panel {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .history-item {
+            padding: 15px;
+            border-bottom: 1px solid #f8f9fa;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .history-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .history-time {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .history-text {
+            font-size: 0.9rem;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .history-result {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .input-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .main-container {
+                margin: 10px;
+                padding: 20px;
+            }
+        }
+        
+        /* Error States */
+        .error-message {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        /* Performance Info */
+        .performance-info {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .performance-info h6 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+        
+        /* Model Selection Enhancements */
+        .model-select option[style*="bold"] {
+            background: #e8f5e8;
+        }
+        
+        .model-select option:disabled {
+            color: #999;
+            font-style: italic;
+        }
+        
+        /* SHAP Explainability Styles */
+        .shap-explanation {
+            padding: 20px;
+        }
+        
+        .shap-feature {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .shap-feature.positive {
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+            border-left: 4px solid #28a745;
+        }
+        
+        .shap-feature.negative {
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
+            border-left: 4px solid #dc3545;
+        }
+        
+        .shap-value {
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        
+        .shap-value.positive {
+            color: #28a745;
+        }
+        
+        .shap-value.negative {
+            color: #dc3545;
+        }
+        
+        .shap-section {
+            margin-bottom: 25px;
+        }
+        
+        .shap-section h6 {
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="main-container">
+        <!-- Header -->
+        <div class="prediction-header">
+            <h1><i class="fas fa-brain"></i> AI Misinformation Detection</h1>
+            <p>Advanced real-time prediction with comprehensive analysis and explainable AI</p>
+        </div>
+
+        <!-- Input Section -->
+        <div class="input-section">
+            <form id="predictionForm">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label for="tweetText"><i class="fas fa-edit"></i> Enter Text to Analyze</label>
+                            <textarea 
+                                id="tweetText" 
+                                name="text" 
+                                class="tweet-input" 
+                                placeholder="Enter tweet, social media post, or any text content for misinformation analysis..."
+                                maxlength="5000"
+                                required
+                            ></textarea>
+                            <div class="char-counter">
+                                <span id="charCount">0</span>/5000 characters
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="modelSelect"><i class="fas fa-brain"></i> Select Trained Model</label>
+                            <select id="modelSelect" name="model_id" class="model-select" required>
+                                <option value="">Loading models...</option>
+                            </select>
+                        </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button type="submit" class="predict-btn">
+                                <i class="fas fa-spinner loading-spinner"></i>
+                                <i class="fas fa-search"></i>
+                                Analyze Content
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="errorText"></span>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="results-section">
+            <div class="results-header">
+                <div>
+                    <div id="predictionBadge" class="prediction-badge"></div>
+                    <div class="mt-2">
+                        <small id="processingTime"></small>
+                    </div>
+                </div>
+                <div class="confidence-meter">
+                    <span>Confidence:</span>
+                    <div class="confidence-bar">
+                        <div id="confidenceFill" class="confidence-fill"></div>
+                    </div>
+                    <span id="confidenceValue">0%</span>
+                </div>
+            </div>
+
+            <div class="results-grid">
+                <div class="score-card">
+                    <h4><i class="fas fa-robot"></i> Primary Model</h4>
+                    <div id="sentimentScore" class="score-value">--</div>
+                    <div id="sentimentDesc" class="score-description">Selected model prediction...</div>
+                </div>
+
+                <div class="score-card">
+                    <h4><i class="fas fa-brain"></i> Zero-Shot</h4>
+                    <div id="behavioralScore" class="score-value">--</div>
+                    <div id="behavioralDesc" class="score-description">Live prediction...</div>
+                </div>
+
+                <div class="score-card">
+                    <h4><i class="fas fa-check-circle"></i> Fact Check</h4>
+                    <div id="factCheckScore" class="score-value">--</div>
+                    <div id="factCheckDesc" class="score-description">External validation...</div>
+                </div>
+
+                <div class="score-card">
+                    <h4><i class="fas fa-chart-line"></i> Consensus</h4>
+                    <div id="overallScore" class="score-value">--</div>
+                    <div id="overallDesc" class="score-description">Agreement analysis...</div>
+                </div>
+            </div>
+
+            <!-- Visualization Tabs -->
+            <div class="visualization-tabs">
+                <button class="viz-tab active" onclick="showVizTab('features')">
+                    <i class="fas fa-chart-bar"></i> Feature Importance
+                </button>
+                <button class="viz-tab" onclick="showVizTab('shap')" id="shapTab" style="display: none;">
+                    <i class="fas fa-lightbulb"></i> SHAP Explainability
+                </button>
+                <button class="viz-tab" onclick="showVizTab('confidence')">
+                    <i class="fas fa-tachometer-alt"></i> Confidence Breakdown
+                </button>
+                <button class="viz-tab" onclick="showVizTab('timeline')">
+                    <i class="fas fa-clock"></i> Processing Timeline
+                </button>
+            </div>
+
+            <!-- Feature Importance Chart -->
+            <div id="featuresViz" class="viz-content active">
+                <div class="chart-container">
+                    <canvas id="featureChart"></canvas>
+                </div>
+            </div>
+
+            <!-- SHAP Explainability -->
+            <div id="shapViz" class="viz-content">
+                <div id="shapExplanation" class="shap-explanation">
+                    <p class="text-muted">SHAP explanations will appear here when available.</p>
+                </div>
+            </div>
+
+            <!-- Confidence Breakdown Chart -->
+            <div id="confidenceViz" class="viz-content">
+                <div class="chart-container">
+                    <canvas id="confidenceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Processing Timeline -->
+            <div id="timelineViz" class="viz-content">
+                <div class="chart-container">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Source Attribution -->
+            <div class="source-attribution">
+                <h4><i class="fas fa-tags"></i> Source Attribution</h4>
+                <div id="sourceTags" class="source-tags">
+                    <!-- Dynamic source tags will be added here -->
+                </div>
+                <div class="mt-3">
+                    <small><strong>Model:</strong> <span id="modelUsed">--</span></small><br>
+                    <small><strong>Transformer:</strong> <span id="transformerUsed">--</span></small><br>
+                    <small><strong>Interaction ID:</strong> <span id="interactionId">--</span></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Panel -->
+        <div class="history-panel">
+            <h4><i class="fas fa-history"></i> Recent Predictions</h4>
+            <div id="historyList">
+                <p class="text-muted">No predictions yet. Start by analyzing some content!</p>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Global variables
+    let currentSession = null;
+    let predictionHistory = [];
+    let featureChart = null;
+    let confidenceChart = null;
+    let timelineChart = null;
+
+    // DOM elements
+    const tweetText = document.getElementById('tweetText');
+    const charCount = document.getElementById('charCount');
+    const predictionForm = document.getElementById('predictionForm');
+    const modelSelect = document.getElementById('modelSelect');
+    const resultsSection = document.getElementById('resultsSection');
+    const errorMessage = document.getElementById('errorMessage');
+    const predictBtn = document.querySelector('.predict-btn');
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAvailableModels();
+        loadSessionHistory();
+        
+        // Character counter
+        tweetText.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+        });
+        
+        // Form submission
+        predictionForm.addEventListener('submit', handlePrediction);
+    });
+
+    // Load available models with performance metrics
+    async function loadAvailableModels() {
+        try {
+            const availableModels = {{ available_models|tojson }};
+            const datasetsWithModels = {{ datasets_with_models|default(0) }};
+            const totalModels = {{ total_models|default(0) }};
+            
+            if (availableModels && availableModels.length > 0) {
+                displayModelSelection(availableModels);
+                
+                // Show summary info
+                if (datasetsWithModels > 0) {
+                    console.log(`Loaded ${totalModels} models from ${datasetsWithModels} datasets`);
+                }
+            } else {
+                showError('No trained models available. Using zero-shot classification only.');
+            }
+        } catch (error) {
+            console.error('Error loading models:', error);
+            showError('Failed to load available models');
+        }
+    }
+    
+    // Display model selection with performance metrics  
+    function displayModelSelection(models) {
+        modelSelect.innerHTML = '<option value="">Select a model...</option>';
+        
+        if (!models || models.length === 0) {
+            modelSelect.innerHTML = '<option value="zero_shot">Zero-Shot Classification (Live)</option>';
+            return;
+        }
+        
+        // Group models by dataset
+        const modelsByDataset = {};
+        models.forEach(model => {
+            if (!modelsByDataset[model.dataset]) {
+                modelsByDataset[model.dataset] = [];
+            }
+            modelsByDataset[model.dataset].push(model);
+        });
+        
+        // Add models grouped by dataset
+        Object.keys(modelsByDataset).forEach(dataset => {
+            // Add dataset header for multiple datasets
+            if (Object.keys(modelsByDataset).length > 1) {
+                const header = document.createElement('option');
+                header.disabled = true;
+                header.textContent = `--- ${dataset.replace('_', ' ').toUpperCase()} ---`;
+                header.style.fontWeight = 'bold';
+                header.style.background = '#f8f9fa';
+                modelSelect.appendChild(header);
+            }
+            
+            // Add models for this dataset
+            modelsByDataset[dataset].forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.setAttribute('data-dataset', model.dataset);
+                option.setAttribute('data-model', model.name);
+                
+                const bestBadge = model.is_best ? 'Best - ' : '';
+                const accuracy = (model.accuracy * 100).toFixed(1);
+                const f1 = model.f1_score ? model.f1_score.toFixed(3) : 'N/A';
+                
+                option.textContent = `${bestBadge}${model.display_name} - Acc: ${accuracy}% F1: ${f1}`;
+                
+                if (model.is_best) {
+                    option.style.fontWeight = 'bold';
+                    option.style.color = '#28a745';
+                }
+                
+                modelSelect.appendChild(option);
+            });
+        });
+        
+        // Add zero-shot option as fallback
+        const zeroShotSeparator = document.createElement('option');
+        zeroShotSeparator.disabled = true;
+        zeroShotSeparator.textContent = '--- Live Classification ---';
+        modelSelect.appendChild(zeroShotSeparator);
+        
+        const zeroShotOption = document.createElement('option');
+        zeroShotOption.value = 'zero_shot';
+        zeroShotOption.textContent = 'Zero-Shot Classification (Live)';
+        zeroShotOption.style.color = '#dc3545';
+        modelSelect.appendChild(zeroShotOption);
+        
+        // Display performance summary
+        displayPerformanceSummary(models);
+    }
+    
+    // Display performance summary
+    function displayPerformanceSummary(models) {
+        if (!models || models.length === 0) return;
+        
+        // Find best model
+        const bestModel = models.find(m => m.is_best) || models[0];
+        const totalModels = models.filter(m => m.name !== 'zero_shot').length;
+        const datasets = [...new Set(models.map(m => m.dataset))].filter(d => d !== 'fallback');
+        
+        // Add or update performance info display
+        let perfInfo = document.getElementById('performanceInfo');
+        if (!perfInfo) {
+            perfInfo = document.createElement('div');
+            perfInfo.id = 'performanceInfo';
+            perfInfo.className = 'performance-info mt-3 p-3 bg-light rounded';
+            modelSelect.parentElement.appendChild(perfInfo);
+        }
+        
+        perfInfo.innerHTML = `
+            <h6><i class="fas fa-chart-bar"></i> Model Performance Summary</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Best Model:</strong> ${bestModel.display_name}<br>
+                    <strong>F1 Score:</strong> ${(bestModel.f1_score * 100).toFixed(1)}%<br>
+                    <strong>Accuracy:</strong> ${(bestModel.accuracy * 100).toFixed(1)}%
+                </div>
+                <div class="col-md-6">
+                    <strong>Total Models:</strong> ${totalModels}<br>
+                    <strong>Datasets:</strong> ${datasets.length}<br>
+                    <strong>Zero-Shot:</strong> Available
+                </div>
+            </div>
+            ${totalModels === 0 ? '<div class="alert alert-info mt-2 mb-0"><i class="fas fa-info-circle"></i> No trained models found. Zero-shot classification will be used as fallback.</div>' : ''}
+        `;
+    }
+
+    // Handle prediction
+    async function handlePrediction(e) {
+        e.preventDefault();
+        
+        const text = tweetText.value.trim();
+        const selectedModel = modelSelect.value;
+        
+        if (!text) {
+            showError('Please enter some text to analyze');
+            return;
+        }
+        
+        if (!selectedModel) {
+            showError('Please select a model');
+            return;
+        }
+
+        // Show loading state
+        setLoadingState(true);
+        hideError();
+        resultsSection.style.display = 'none';
+
+        try {
+            const formData = new FormData(predictionForm);
+            // Override model selection with our ID format
+            formData.set('model_id', selectedModel);
+            
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                displayComprehensiveResults(result.prediction, text);
+                addToHistory(result.prediction, text);
+            } else {
+                showError(result.message || 'Prediction failed');
+            }
+        } catch (error) {
+            console.error('Prediction error:', error);
+            showError('Network error occurred. Please try again.');
+        } finally {
+            setLoadingState(false);
+        }
+    }
+
+    // Display comprehensive results with all sources
+    function displayComprehensiveResults(result, originalText) {
+        const prediction = result.primary_prediction || result.prediction || result;
+        const isMisinformation = prediction.prediction === 1;
+        const confidence = (prediction.confidence * 100).toFixed(1);
+        
+        // Update main prediction badge
+        const badge = document.getElementById('predictionBadge');
+        badge.textContent = isMisinformation ? 'MISINFORMATION DETECTED' : 'CONTENT APPEARS LEGITIMATE';
+        badge.className = `prediction-badge ${isMisinformation ? 'misinformation' : 'legitimate'}`;
+        
+        // Update confidence meter
+        const confidenceFill = document.getElementById('confidenceFill');
+        const confidenceValue = document.getElementById('confidenceValue');
+        confidenceFill.style.width = confidence + '%';
+        confidenceFill.style.background = isMisinformation ? '#ff6b6b' : '#51cf66';
+        confidenceValue.textContent = confidence + '%';
+        
+        // Update processing time
+        document.getElementById('processingTime').textContent = 
+            `Processed in ${(prediction.processing_time || 0.5).toFixed(2)}s`;
+        
+        // Update score cards with comprehensive results
+        updateScoreCards(result);
+        
+        // Update source attribution
+        updateSourceAttribution(prediction);
+        
+        // Create visualizations
+        createFeatureImportanceChart(prediction);
+        createConfidenceBreakdownChart(prediction);
+        createProcessingTimelineChart(prediction);
+        
+        // Display SHAP explanation if available
+        if (result.shap_explanation) {
+            displaySHAPExplanation(result.shap_explanation);
+            document.getElementById('shapTab').style.display = 'block';
+        } else {
+            document.getElementById('shapTab').style.display = 'none';
+        }
+        
+        // Show results
+        resultsSection.style.display = 'block';
+    }
+
+    // Update score cards with multi-source results
+    function updateScoreCards(result) {
+        const primary = result.primary_prediction || result;
+        const zeroShot = result.zero_shot_prediction || {};
+        const factCheck = result.fact_check_validation || {};
+        const consensus = result.consensus_analysis || {};
+        
+        // Primary Model Score
+        document.getElementById('sentimentScore').textContent = 
+            primary.prediction_label || 'N/A';
+        document.getElementById('sentimentDesc').textContent = 
+            `${primary.model_name || 'Model'}: ${((primary.confidence || 0) * 100).toFixed(1)}%`;
+        
+        // Zero-Shot Score
+        document.getElementById('behavioralScore').textContent = 
+            zeroShot.prediction === 1 ? 'Misinformation' : zeroShot.prediction === 0 ? 'Legitimate' : 'N/A';
+        document.getElementById('behavioralDesc').textContent = 
+            `Zero-Shot: ${((zeroShot.confidence || 0) * 100).toFixed(1)}%`;
+        
+        // Fact Check Score
+        document.getElementById('factCheckScore').textContent = 
+            factCheck.verdict || 'Unknown';
+        document.getElementById('factCheckDesc').textContent = 
+            `External Sources: ${((factCheck.confidence || 0) * 100).toFixed(1)}%`;
+        
+        // Consensus Score
+        document.getElementById('overallScore').textContent = 
+            consensus.consensus || 'Mixed';
+        document.getElementById('overallDesc').textContent = 
+            `Agreement: ${consensus.strength || 'unknown'} (${((consensus.agreement_ratio || 0) * 100).toFixed(0)}%)`;
+    }
+
+    // Update source attribution
+    function updateSourceAttribution(prediction) {
+        document.getElementById('modelUsed').textContent = prediction.model_used || 'Unknown';
+        document.getElementById('transformerUsed').textContent = prediction.transformer_used || 'Unknown';
+        document.getElementById('interactionId').textContent = prediction.interaction_id || 'N/A';
+        
+        // Add source tags
+        const sourceTags = document.getElementById('sourceTags');
+        sourceTags.innerHTML = '';
+        
+        const sources = ['ML Model', 'Transformer', 'Sentiment Analysis', 'Fact Checking'];
+        sources.forEach(source => {
+            const tag = document.createElement('span');
+            tag.className = 'source-tag';
+            tag.textContent = source;
+            sourceTags.appendChild(tag);
+        });
+    }
+
+    // Create feature importance chart
+    function createFeatureImportanceChart(prediction) {
+        const ctx = document.getElementById('featureChart').getContext('2d');
+        
+        if (featureChart) {
+            featureChart.destroy();
+        }
+        
+        const explanation = prediction.explanation || {};
+        const features = explanation.top_features || [];
+        
+        const labels = features.slice(0, 10).map(f => f.feature || 'Unknown');
+        const values = features.slice(0, 10).map(f => Math.abs(f.value || 0));
+        
+        featureChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Feature Importance',
+                    data: values,
+                    backgroundColor: '#667eea',
+                    borderColor: '#764ba2',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Create confidence breakdown chart
+    function createConfidenceBreakdownChart(prediction) {
+        const ctx = document.getElementById('confidenceChart').getContext('2d');
+        
+        if (confidenceChart) {
+            confidenceChart.destroy();
+        }
+        
+        confidenceChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Model Confidence', 'Sentiment', 'Behavioral', 'Fact Check'],
+                datasets: [{
+                    data: [
+                        (prediction.confidence || 0) * 100,
+                        (prediction.sentiment_scores?.confidence || 0) * 100,
+                        75, // Behavioral score placeholder
+                        (prediction.fact_check_scores?.confidence || 0) * 100
+                    ],
+                    backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#28a745']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    // Create processing timeline chart
+    function createProcessingTimelineChart(prediction) {
+        const ctx = document.getElementById('timelineChart').getContext('2d');
+        
+        if (timelineChart) {
+            timelineChart.destroy();
+        }
+        
+        timelineChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Text Processing', 'Feature Extraction', 'Model Prediction', 'Explanation'],
+                datasets: [{
+                    label: 'Processing Time (ms)',
+                    data: [50, 120, 80, 150], // Placeholder data
+                    backgroundColor: '#667eea'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Show visualization tab
+    function showVizTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.viz-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // Show content
+        document.querySelectorAll('.viz-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById(tabName + 'Viz').classList.add('active');
+    }
+
+    // Display SHAP explanation
+    function displaySHAPExplanation(shapData) {
+        const shapContainer = document.getElementById('shapExplanation');
+        
+        if (!shapData) {
+            shapContainer.innerHTML = '<p class="text-muted">No SHAP explanation available for this prediction.</p>';
+            return;
+        }
+        
+        let html = `
+            <div class="shap-section">
+                <h6><i class="fas fa-info-circle"></i> Prediction Explanation</h6>
+                <p class="text-muted">SHAP values show how each feature contributes to the prediction:</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Model:</strong> ${shapData.model_name}<br>
+                        <strong>Dataset:</strong> ${shapData.dataset_name}<br>
+                        <strong>Expected Value:</strong> ${shapData.expected_value ? shapData.expected_value.toFixed(4) : 'N/A'}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (shapData.top_positive_features && shapData.top_positive_features.length > 0) {
+            html += `
+                <div class="shap-section">
+                    <h6><i class="fas fa-arrow-up text-success"></i> Features Supporting Misinformation</h6>
+                    ${shapData.top_positive_features.map(feature => `
+                        <div class="shap-feature positive">
+                            <span>${feature.feature}</span>
+                            <span class="shap-value positive">+${feature.shap_value.toFixed(4)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        if (shapData.top_negative_features && shapData.top_negative_features.length > 0) {
+            html += `
+                <div class="shap-section">
+                    <h6><i class="fas fa-arrow-down text-danger"></i> Features Supporting Legitimacy</h6>
+                    ${shapData.top_negative_features.map(feature => `
+                        <div class="shap-feature negative">
+                            <span>${feature.feature}</span>
+                            <span class="shap-value negative">${feature.shap_value.toFixed(4)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        html += `
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-lightbulb"></i>
+                <strong>How to interpret:</strong> Positive values push the prediction towards misinformation, 
+                while negative values push towards legitimate content. Larger absolute values indicate stronger influence.
+            </div>
+        `;
+        
+        shapContainer.innerHTML = html;
+    }
+
+    // Add to history
+    function addToHistory(prediction, text) {
+        const historyItem = {
+            timestamp: new Date().toLocaleString(),
+            text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+            result: prediction.prediction_label,
+            confidence: prediction.confidence
+        };
+        
+        predictionHistory.unshift(historyItem);
+        predictionHistory = predictionHistory.slice(0, 10); // Keep last 10
+        
+        updateHistoryDisplay();
+    }
+
+    // Update history display
+    function updateHistoryDisplay() {
+        const historyList = document.getElementById('historyList');
+        
+        if (predictionHistory.length === 0) {
+            historyList.innerHTML = '<p class="text-muted">No predictions yet. Start by analyzing some content!</p>';
+            return;
+        }
+        
+        historyList.innerHTML = predictionHistory.map(item => `
+            <div class="history-item">
+                <div class="history-time">${item.timestamp}</div>
+                <div class="history-text">${item.text}</div>
+                <div class="history-result ${item.result.toLowerCase()}">${item.result} (${(item.confidence * 100).toFixed(1)}%)</div>
+            </div>
+        `).join('');
+    }
+
+    // Load session history
+    function loadSessionHistory() {
+        // In a real implementation, this would load from the server
+        // For now, we'll just initialize empty
+        predictionHistory = [];
+    }
+
+    // Set loading state
+    function setLoadingState(loading) {
+        predictBtn.disabled = loading;
+        
+        if (loading) {
+            predictBtn.classList.add('loading');
+            predictBtn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> Analyzing...';
+        } else {
+            predictBtn.classList.remove('loading');
+            predictBtn.innerHTML = '<i class="fas fa-search"></i> Analyze Content';
+        }
+    }
+
+    // Show error
+    function showError(message) {
+        document.getElementById('errorText').textContent = message;
+        errorMessage.classList.add('show');
+    }
+
+    // Hide error
+    function hideError() {
+        errorMessage.classList.remove('show');
+    }
+
+    // Sample texts for testing
+    function loadSample(type) {
+        const samples = {
+            legitimate: "The President announced new infrastructure funding that will create jobs and improve transportation. This initiative is part of the government's long-term development plan.",
+            misinformation: "BREAKING: Secret documents reveal government plans to control all social media! They're hiding the truth from citizens. Share this before it gets deleted!"
+        };
+        
+        tweetText.value = samples[type];
+        charCount.textContent = samples[type].length;
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+    <div class="main-container">
+            <div class="text-center mb-4">
+                <h1>
+                    <i class="fas fa-search text-primary me-3"></i>
+                    Misinformation Detection
+                </h1>
+                <p class="lead text-muted">
+                    Analyze tweets and social media content for potential misinformation using AI
+                </p>
+            </div>
+
+
+
+            <!-- Sample Tweets -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-lightbulb me-2"></i>Try These Sample Tweets</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-info btn-sm mb-2 w-100" onclick="loadSample('legitimate')">
+                                Load Legitimate Sample
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-warning btn-sm mb-2 w-100" onclick="loadSample('misinformation')">
+                                Load Misinformation Sample
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+{% endblock %}
+                                            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Content that aligns with verified information</li>
+                                            <li class="list-group-item"><i class="fas fa-shield-alt text-success me-2"></i>Absence of typical misinformation markers</li>
+                                        </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if gratification_scores %}
+                            <div class="card mb-3 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">User Gratification Analysis</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p>This analysis identifies potential user motives for sharing this content:</p>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <div class="card h-100">
+                                                <div class="card-body text-center">
+                                                    <h5 class="card-title">
+                                                        <i class="fas fa-laugh-beam text-primary me-2"></i>Entertainment
+                                                    </h5>
+                                                    <div class="display-4 mb-2">{{ gratification_scores.entertainment }}%</div>
+                                                    <div class="progress">
+                                                        <div class="progress-bar bg-primary" role="progressbar" 
+                                                             style="width: {{ gratification_scores.entertainment }}%;" 
+                                                             aria-valuenow="{{ gratification_scores.entertainment }}" 
+                                                             aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <p class="mt-2 small">Content shared for amusement or emotional stimulation</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card h-100">
+                                                <div class="card-body text-center">
+                                                    <h5 class="card-title">
+                                                        <i class="fas fa-id-card text-danger me-2"></i>Identity
+                                                    </h5>
+                                                    <div class="display-4 mb-2">{{ gratification_scores.identity }}%</div>
+                                                    <div class="progress">
+                                                        <div class="progress-bar bg-danger" role="progressbar" 
+                                                             style="width: {{ gratification_scores.identity }}%;" 
+                                                             aria-valuenow="{{ gratification_scores.identity }}" 
+                                                             aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <p class="mt-2 small">Content that reinforces political identity</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card h-100">
+                                                <div class="card-body text-center">
+                                                    <h5 class="card-title">
+                                                        <i class="fas fa-users text-success me-2"></i>Connection
+                                                    </h5>
+                                                    <div class="display-4 mb-2">{{ gratification_scores.connection }}%</div>
+                                                    <div class="progress">
+                                                        <div class="progress-bar bg-success" role="progressbar" 
+                                                             style="width: {{ gratification_scores.connection }}%;" 
+                                                             aria-valuenow="{{ gratification_scores.connection }}" 
+                                                             aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <p class="mt-2 small">Content shared to build social capital</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="alert alert-secondary mt-3">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Insight:</strong> 
+                                        {% set highest_score = namespace(name='', value=0) %}
+                                        {% for motive, score in gratification_scores.items() %}
+                                            {% if score > highest_score.value %}
+                                                {% set highest_score.name = motive %}
+                                                {% set highest_score.value = score %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        {% if highest_score.name == 'entertainment' %}
+                                            This content appears primarily designed for <strong>entertainment</strong>, which may prioritize emotional appeal over factual accuracy.
+                                        {% elif highest_score.name == 'identity' %}
+                                            This content strongly appeals to <strong>political identity</strong>, which may lead to biased presentation of information.
+                                        {% elif highest_score.name == 'connection' %}
+                                            This content emphasizes <strong>social connection</strong>, which may encourage sharing without critical evaluation.
+                                        {% else %}
+                                            No dominant gratification motive detected.
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if hashtags and hashtags|length > 0 %}
+                            <div class="card mb-3 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-hashtag me-2"></i>Hashtag Analysis</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p>The following hashtags were detected in this tweet:</p>
+                                    <div class="mb-3">
+                                        {% for hashtag in hashtags %}
+                                            <span class="badge bg-primary p-2 me-2 mb-2">#{{ hashtag }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="alert alert-secondary">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Context:</strong> Hashtags like 
+                                        {% if 'RutoMustGo' in hashtags or 'rutomustgo' in hashtags %}
+                                            <span class="badge bg-danger">#RutoMustGo</span>
+                                        {% endif %}
+                                        {% if 'RejectFinanceBill2024' in hashtags or 'rejectfinancebill2024' in hashtags %}
+                                            <span class="badge bg-danger">#RejectFinanceBill2024</span>
+                                        {% endif %}
+                                        are associated with political discourse in Kenya and may indicate content related to specific political movements or protests.
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Note:</strong> This is an automated classification and should be verified by human judgment. The model has been trained on Kenyan political discourse data.
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if not prediction %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h3 class="mb-0">User Gratification Motives</h3>
+            </div>
+            <div class="card-body">
+                <p class="lead">Understanding why users share political content helps identify potential misinformation:</p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <i class="fas fa-laugh-beam fs-1 text-primary mb-3"></i>
+                                <h5 class="card-title">Entertainment</h5>
+                                <p class="card-text">Content shared for amusement often contains exaggerated claims</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <i class="fas fa-id-card fs-1 text-primary mb-3"></i>
+                                <h5 class="card-title">Identity</h5>
+                                <p class="card-text">Content that reinforces political identity may distort facts</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <i class="fas fa-users fs-1 text-primary mb-3"></i>
+                                <h5 class="card-title">Connection</h5>
+                                <p class="card-text">Content shared to build social capital may prioritize engagement over accuracy</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
